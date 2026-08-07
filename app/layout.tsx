@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Manrope, Alata, Newsreader } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { CartProvider } from "@/lib/cart/store";
 
 // Manrope/Alata/Newsreader match the landing page design (Figma EZER-KEY, node
 // 1707:7213) — replaces the create-next-app default (Geist).
@@ -17,7 +18,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={cn("font-sans", manrope.variable, alata.variable, newsreader.variable)}>
-      <body>{children}</body>
+      <body>
+        <CartProvider>{children}</CartProvider>
+      </body>
     </html>
   );
 }

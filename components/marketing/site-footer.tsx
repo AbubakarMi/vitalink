@@ -9,9 +9,27 @@ export function SiteFooter() {
         <div>
           <span className="font-alata text-2xl text-brand-primary">VITALINK</span>
           <div className="mt-4 flex gap-2">
-            {[0, 1, 2].map((i) => (
-              <Image key={i} src="/marketing/social-dot.svg" alt="" width={24} height={24} aria-hidden />
-            ))}
+            <a
+              href="#"
+              aria-label="Instagram"
+              className="flex size-[58px] items-center justify-center rounded-full bg-[#f5f5f5]"
+            >
+              <Image src="/marketing/social-instagram-icon.svg" alt="" width={32} height={32} aria-hidden />
+            </a>
+            <a
+              href="#"
+              aria-label="X (Twitter)"
+              className="flex size-[58px] items-center justify-center rounded-full bg-[#f5f5f5]"
+            >
+              <Image src="/marketing/social-x-icon.png" alt="" width={24} height={22} aria-hidden />
+            </a>
+            <a
+              href="#"
+              aria-label="YouTube"
+              className="flex size-[58px] items-center justify-center rounded-full bg-[#f5f5f5]"
+            >
+              <Image src="/marketing/social-youtube-icon.svg" alt="" width={32} height={22.4} aria-hidden />
+            </a>
           </div>
         </div>
 

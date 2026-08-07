@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { NairaPrice } from "@/components/marketing/naira-price";
 import { listProducts, type Product } from "@/lib/api/products";
@@ -11,12 +12,20 @@ import { listProducts, type Product } from "@/lib/api/products";
  * landing page (design doc §8/§9 — no fabricated personalization). Backed by
  * the same mocked lib/api/products.ts used by /products (design doc §1).
  */
+const FEATURED_COUNT = 3;
+
 export async function FeaturedProducts() {
-  const products = await listProducts();
+  const products = (await listProducts()).slice(0, FEATURED_COUNT);
 
   return (
     <section className="mx-auto max-w-5xl px-10 py-12">
-      <h2 className="text-2xl font-bold text-[#0f3e17]">Featured products</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold text-[#0f3e17]">Featured products</h2>
+        <Link href="/products" aria-label="Browse the marketplace" className="flex items-center gap-2 text-accent">
+          <ArrowRight className="size-5" aria-hidden />
+          <ArrowLeft className="size-5" aria-hidden />
+        </Link>
+      </div>
       <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
         {products.map((product) => (
           <ProductCard key={product.id} product={product} />
