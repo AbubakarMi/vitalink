@@ -1,16 +1,17 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, ArrowLeft } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { NairaPrice } from "@/components/marketing/naira-price";
 import { listProducts, type Product } from "@/lib/api/products";
 
 /**
- * Figma EZER-KEY node 1707:7213's "Based on your recent Activities" section,
- * renamed "Featured products" — that section showed per-user activity-based
- * recommendations, which don't exist for an anonymous visitor on the public
- * landing page (design doc §8/§9 — no fabricated personalization). Backed by
- * the same mocked lib/api/products.ts used by /products (design doc §1).
+ * Originally Figma EZER-KEY node 1707:7213's "Based on your recent
+ * Activities" section, renamed "Featured products" since per-user
+ * activity-based recommendations don't exist for an anonymous visitor
+ * (design doc §8/§9 — no fabricated personalization). Restyled in the
+ * landing-page redesign; still backed by the same mocked lib/api/products.ts
+ * used by /products (design doc §1).
  */
 const FEATURED_COUNT = 3;
 
@@ -18,18 +19,27 @@ export async function FeaturedProducts() {
   const products = (await listProducts()).slice(0, FEATURED_COUNT);
 
   return (
-    <section className="mx-auto max-w-5xl px-10 py-12">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-[#0f3e17]">Featured products</h2>
-        <Link href="/products" aria-label="Browse the marketplace" className="flex items-center gap-2 text-accent">
-          <ArrowRight className="size-5" aria-hidden />
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-      </div>
-      <div className="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
-        {products.map((product) => (
-          <ProductCard key={product.id} product={product} />
-        ))}
+    <section className="bg-paper px-10 py-20">
+      <div className="mx-auto max-w-5xl">
+        <div className="flex items-end justify-between">
+          <div>
+            <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">Featured</p>
+            <h2 className="mt-2 font-[family-name:var(--font-newsreader)] text-3xl text-ink">In active demand</h2>
+          </div>
+          <Link
+            href="/products"
+            aria-label="Browse the marketplace"
+            className="flex items-center gap-2 font-mono text-xs text-verified hover:text-ink"
+          >
+            View all
+            <ArrowRight className="size-4" aria-hidden />
+          </Link>
+        </div>
+        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-3">
+          {products.map((product) => (
+            <ProductCard key={product.id} product={product} />
+          ))}
+        </div>
       </div>
     </section>
   );
@@ -37,27 +47,25 @@ export async function FeaturedProducts() {
 
 export function ProductCard({ product }: { product: Product }) {
   return (
-    <div className="flex flex-col gap-3 rounded-[10px] bg-surface p-4">
+    <Link
+      href={`/products/${product.slug}`}
+      className="group flex flex-col gap-3 rounded-[10px] border border-line bg-surface p-4 transition-shadow hover:shadow-[0_8px_24px_rgba(6,44,36,0.08)]"
+    >
       <div className="relative aspect-[4/3] w-full rounded-[5px] bg-surface-muted">
-        <Image
-          src="/marketing/badge-icon-1.svg"
-          alt=""
-          width={12}
-          height={12}
-          className="absolute top-3 left-3"
-          aria-hidden
-        />
+        {product.imageUrl && (
+          <Image src={product.imageUrl} alt="" fill sizes="320px" className="object-contain p-6" />
+        )}
         {product.badge && (
-          <Badge className="absolute top-3 right-3 rounded-[2px] bg-[#6df5e1] text-[#0f3e17] hover:bg-[#6df5e1]">
+          <Badge className="absolute top-3 right-3 rounded-[2px] bg-signal font-mono text-[10px] text-ink hover:bg-signal">
             {product.badge}
           </Badge>
         )}
       </div>
-      <p className="font-bold text-[#4a7a4a]">{product.name}</p>
+      <p className="font-semibold text-ink group-hover:text-verified">{product.name}</p>
       <div className="flex items-center justify-between">
         <NairaPrice amount={product.price} className="text-xl" />
         <div className="flex flex-col items-end">
-          <Link href={`/products/${product.slug}`} className="flex items-center gap-1 text-verified">
+          <span className="flex items-center gap-1 font-mono text-xs text-verified">
             Shop
             <Image
               src="/marketing/shop-arrow-1.svg"
@@ -67,10 +75,10 @@ export function ProductCard({ product }: { product: Product }) {
               className="-rotate-90"
               aria-hidden
             />
-          </Link>
-          {product.freeDelivery && <p className="text-xs text-[#385650]">Free delivery</p>}
+          </span>
+          {product.freeDelivery && <p className="text-xs text-text-muted">Free delivery</p>}
         </div>
       </div>
-    </div>
+    </Link>
   );
 }
