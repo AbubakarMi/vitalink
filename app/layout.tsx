@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import { Geist } from "next/font/google";
+import { Manrope, Alata, Newsreader } from "next/font/google";
 import { cn } from "@/lib/utils";
 
-const geist = Geist({subsets:['latin'],variable:'--font-sans'});
+// Manrope/Alata/Newsreader match the landing page design (Figma EZER-KEY, node
+// 1707:7213) — replaces the create-next-app default (Geist).
+const manrope = Manrope({ subsets: ["latin"], variable: "--font-sans" });
+const alata = Alata({ subsets: ["latin"], weight: "400", variable: "--font-alata" });
+const newsreader = Newsreader({ subsets: ["latin"], weight: "500", variable: "--font-newsreader" });
 
 export const metadata: Metadata = {
   title: "Vitalink",
@@ -12,7 +16,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={cn("font-sans", geist.variable)}>
+    <html lang="en" className={cn("font-sans", manrope.variable, alata.variable, newsreader.variable)}>
       <body>{children}</body>
     </html>
   );

@@ -1,66 +1,30 @@
 import { Suspense } from "react";
-import { listFeaturedCategories } from "@/lib/api/categories";
-import { listProducts } from "@/lib/api/products";
+import { HeroSearch } from "@/components/marketing/hero-search";
+import { FeaturedProducts } from "@/components/marketing/featured-products";
+import { LatestInnovation } from "@/components/marketing/latest-innovation";
+import { Testimonials } from "@/components/marketing/testimonials";
+import { TrustedBrands } from "@/components/marketing/trusted-brands";
 
 /**
- * Landing page — cache-components static shell (hero + these two "use cache"
- * sections) with Suspense boundaries so each section can stream independently.
- * Both sections are backed by mocked data today (design doc §1 correction: no
- * account type can read real category/brand data yet); the "use cache" directive
- * lives on the lib/api functions themselves, not here — see lib/api/categories.ts
- * and lib/api/products.ts.
- *
- * No cart-count or personalized-recommendations slot yet: design doc §8 is
- * explicit that these should be omitted, not faked, since there's no real data
- * source for either.
+ * Landing page — Figma EZER-KEY node 1707:7213, adapted for anonymous
+ * visitors (design doc §9, and the follow-up decision to target the public
+ * route rather than /buyer/dashboard). Cache-components static shell: the
+ * hero and FeaturedProducts are both backed by "use cache" mocked data
+ * (lib/api/products.ts) — see design doc §1 correction on why nothing here
+ * is real category/brand data yet. No cart-count or truly-personalized
+ * recommendations slot — design doc §8 is explicit those should be omitted,
+ * not faked, since there's no real per-user data source for either.
  */
 export default function LandingPage() {
   return (
     <main>
-      <section>
-        <h1>Vitalink</h1>
-        <p>Discover, understand, and safely use health products with confidence.</p>
-        <nav>
-          <a href="/buyer/catalog">Shop health products</a>
-          <a href="/vendor-apply">Sell on Vitalink</a>
-        </nav>
-      </section>
-
-      <section>
-        <h2>Categories</h2>
-        <Suspense fallback={<p>Loading categories…</p>}>
-          <FeaturedCategories />
-        </Suspense>
-      </section>
-
-      <section>
-        <h2>Trending products</h2>
-        <Suspense fallback={<p>Loading products…</p>}>
-          <TrendingProducts />
-        </Suspense>
-      </section>
+      <HeroSearch />
+      <Suspense fallback={<div className="mx-auto h-96 max-w-5xl px-10 py-12" />}>
+        <FeaturedProducts />
+      </Suspense>
+      <LatestInnovation />
+      <Testimonials />
+      <TrustedBrands />
     </main>
-  );
-}
-
-async function FeaturedCategories() {
-  const categories = await listFeaturedCategories();
-  return (
-    <ul>
-      {categories.map((category) => (
-        <li key={category.id}>{category.name}</li>
-      ))}
-    </ul>
-  );
-}
-
-async function TrendingProducts() {
-  const products = await listProducts();
-  return (
-    <ul>
-      {products.map((product) => (
-        <li key={product.id}>{product.name}</li>
-      ))}
-    </ul>
   );
 }

@@ -22,7 +22,15 @@
   --color-warning: #d97706;
 }
 
-:root[data-theme="dark"],
+/*
+ * Dark-mode values are scoped to an explicit `.dark` class only — deliberately
+ * NOT wired to `prefers-color-scheme`. Nothing in the app sets `.dark` yet, so
+ * this stays fully inert until a real dark-mode-aware design exists and a
+ * theme toggle sets the class. This design (Figma EZER-KEY, node 1707:7213)
+ * is single-theme; auto-switching a page that was never designed or tested
+ * against dark colors produces breakage like dark-navy backgrounds with
+ * hardcoded light-mode text colors staying dark-on-dark.
+ */
 .dark {
   --color-brand-primary: #71f8e4;
   --color-brand-primary-hover: #089e7e;
@@ -31,23 +39,14 @@
   --color-surface-muted: #191c1d;
   --color-text-muted: #c5c6cd;
 }
-
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --color-brand-primary: #71f8e4;
-    --color-brand-primary-hover: #089e7e;
-    --color-verified: #71f8e4;
-    --color-surface: #0d1c32;
-    --color-surface-muted: #191c1d;
-    --color-text-muted: #c5c6cd;
-  }
-}
 /*
  ---break---
  */
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: var(--font-sans);
+  --font-alata: var(--font-alata);
+  --font-newsreader: var(--font-newsreader);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);

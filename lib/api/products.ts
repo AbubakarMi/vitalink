@@ -13,6 +13,8 @@ const ProductSchema = z.object({
   imageUrl: z.string().nullable(),
   shortDescription: z.string(),
   inStock: z.boolean(),
+  badge: z.enum(["NAFDAC Approved", "FDA Approved"]).nullable().optional(),
+  freeDelivery: z.boolean().optional(),
 });
 export type Product = z.infer<typeof ProductSchema>;
 
