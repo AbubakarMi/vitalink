@@ -1,7 +1,8 @@
-import { Jumbotron } from "@/components/marketplace/jumbotron";
+import { MarketplacePageHeader } from "@/components/marketplace/marketplace-page-header";
 import { ProductFilters } from "@/components/marketplace/product-filters";
 import { MarketplaceProductCard } from "@/components/marketplace/product-card";
 import { Pagination } from "@/components/marketplace/pagination";
+import { ExploreCategories } from "@/components/marketplace/explore-categories";
 import { listProductsPaged, type SortOption } from "@/lib/api/products";
 
 interface PageProps {
@@ -19,7 +20,9 @@ interface PageProps {
 export const instant = false;
 
 /**
- * Marketplace product listing — Figma EZER-KEY node 1340:439. Reads the
+ * Marketplace product listing — originally built to pixel-fidelity against
+ * Figma EZER-KEY node 1340:439; restyled in the instrument-panel brand
+ * refresh (see components/marketing/vitals-waveform.tsx). Reads the
  * categorySlug/search/sort/view params the footer links, hero search form,
  * and filter bar submit here (design doc §4). Mocked products (design doc §1).
  *
@@ -38,7 +41,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
   return (
     <main className="space-y-6">
-      <Jumbotron>Marketplace</Jumbotron>
+      <MarketplacePageHeader resultCount={totalCount} />
 
       <ProductFilters
         activeCategorySlug={params.categorySlug}
@@ -47,7 +50,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
         activeView={view}
       />
 
-      <div className="mx-auto max-w-[1282px] px-0">
+      <div className="mx-auto max-w-6xl px-0">
         {products.length > 0 ? (
           <div
             className={
@@ -61,7 +64,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
             ))}
           </div>
         ) : (
-          <p className="rounded-[10px] bg-white px-10 py-12 text-center text-text-muted">
+          <p className="rounded-[10px] border border-line bg-white px-10 py-12 text-center text-text-muted">
             No products match that search yet.
           </p>
         )}
@@ -69,7 +72,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
       <Pagination page={page} pageSize={pageSize} totalCount={totalCount} totalPages={totalPages} searchParams={params} />
 
-      <Jumbotron>Recently Viewed / Recommended</Jumbotron>
+      <ExploreCategories activeCategorySlug={params.categorySlug} />
     </main>
   );
 }

@@ -39,22 +39,22 @@ export function Pagination({
   );
 
   return (
-    <div className="mx-auto flex max-w-[1282px] flex-wrap items-center justify-between gap-4 rounded-[5px] bg-white px-9 py-5 text-xs">
-      <p className="text-verified">
-        Showing <span className="font-bold">{rangeStart}-{rangeEnd}</span> of{" "}
-        <span className="font-bold">{totalCount}</span> results
+    <div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-4 rounded-[10px] border border-line bg-white px-8 py-5">
+      <p className="font-mono text-xs text-ink-soft">
+        Showing <span className="font-semibold text-ink">{rangeStart}-{rangeEnd}</span> of{" "}
+        <span className="font-semibold text-ink">{totalCount}</span> results
       </p>
       <div className="flex items-center gap-2">
         {page > 1 ? (
           <Link
             href={hrefFor(page - 1)}
-            className="flex items-center gap-1 rounded-[5px] border-2 border-verified px-4 py-2 font-bold text-verified"
+            className="flex items-center gap-1 rounded-md border border-line px-4 py-2 font-mono text-xs text-ink-soft hover:border-ink"
           >
             <Image src="/marketplace/pagination-arrow.svg" alt="" width={12} height={12} className="rotate-180" aria-hidden />
             Prev
           </Link>
         ) : (
-          <span className="flex items-center gap-1 rounded-[5px] border-2 border-verified px-4 py-2 font-bold text-verified opacity-40">
+          <span className="flex items-center gap-1 rounded-md border border-line px-4 py-2 font-mono text-xs text-ink-soft opacity-40">
             <Image src="/marketplace/pagination-arrow.svg" alt="" width={12} height={12} className="rotate-180" aria-hidden />
             Prev
           </span>
@@ -62,15 +62,15 @@ export function Pagination({
 
         {pageNumbers.map((n, i) => (
           <span key={n} className="flex items-center gap-2">
-            {i > 0 && pageNumbers[i - 1] !== n - 1 && <span className="text-verified opacity-60">…</span>}
+            {i > 0 && pageNumbers[i - 1] !== n - 1 && <span className="text-ink-soft/50">…</span>}
             {n === page ? (
-              <span className="flex size-7 items-center justify-center rounded-[5px] bg-[#4a7a4a] font-bold text-white">
+              <span className="flex size-8 items-center justify-center rounded-md bg-ink font-mono text-xs text-white">
                 {n}
               </span>
             ) : (
               <Link
                 href={hrefFor(n)}
-                className="flex size-7 items-center justify-center rounded-[5px] text-verified hover:bg-[#f0ffdf]"
+                className="flex size-8 items-center justify-center rounded-md font-mono text-xs text-ink-soft hover:bg-paper/60"
               >
                 {n}
               </Link>
@@ -81,13 +81,13 @@ export function Pagination({
         {page < totalPages ? (
           <Link
             href={hrefFor(page + 1)}
-            className="flex items-center gap-1 rounded-[5px] bg-verified px-4 py-2 font-bold text-white"
+            className="flex items-center gap-1 rounded-md bg-ink px-4 py-2 font-mono text-xs text-white hover:bg-ink/85"
           >
             Next
             <Image src="/marketplace/pagination-arrow.svg" alt="" width={12} height={12} className="invert" aria-hidden />
           </Link>
         ) : (
-          <span className="flex items-center gap-1 rounded-[5px] bg-verified px-4 py-2 font-bold text-white opacity-40">
+          <span className="flex items-center gap-1 rounded-md bg-ink px-4 py-2 font-mono text-xs text-white opacity-40">
             Next
             <Image src="/marketplace/pagination-arrow.svg" alt="" width={12} height={12} className="invert" aria-hidden />
           </span>

@@ -18,28 +18,29 @@ export function SiteHeader() {
             VITALINK
           </Link>
 
-          <form action="/products" className="relative ml-auto hidden w-72 sm:block">
-            <div className="flex h-10 items-center rounded-md border border-white/15 bg-white/5 pr-10 pl-4">
+          <form action="/products" className="relative ml-auto hidden shrink-0 sm:block">
+            <div className="group flex h-11 w-64 items-center gap-3 rounded-full border border-white/20 bg-white/[0.07] pr-1.5 pl-5 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] focus-within:w-[26rem] focus-within:border-signal/70 focus-within:bg-white/[0.1] focus-within:shadow-[0_0_0_4px_rgba(142,161,164,0.2)]">
+              <Image src="/marketing/search-icon.svg" alt="" width={15} height={15} className="shrink-0 opacity-50 invert" aria-hidden />
               <input
                 type="search"
                 name="search"
                 placeholder="Search the catalog…"
-                className="w-full bg-transparent font-mono text-[13px] text-white/90 outline-none placeholder:text-white/40"
+                className="w-full bg-transparent font-mono text-[13px] text-white/90 outline-none placeholder:text-white/35"
               />
+              <button
+                type="submit"
+                aria-label="Search"
+                className="flex size-8 shrink-0 items-center justify-center rounded-full bg-signal text-ink transition-colors group-focus-within:bg-white"
+              >
+                <Image src="/marketing/nav-icon.svg" alt="" width={13} height={13} aria-hidden />
+              </button>
             </div>
-            <button
-              type="submit"
-              aria-label="Search"
-              className="absolute top-1/2 right-1.5 flex size-7 -translate-y-1/2 items-center justify-center rounded text-white/50 hover:text-signal"
-            >
-              <Image src="/marketing/nav-icon.svg" alt="" width={14} height={14} className="invert" aria-hidden />
-            </button>
           </form>
 
           <Link
             href="/register"
             className={buttonVariants({
-              className: "rounded-md bg-signal px-6 font-medium text-ink hover:bg-signal/85",
+              className: "rounded-md bg-white px-6 font-semibold !text-[#002708] shadow-sm hover:bg-white/85",
             })}
           >
             Sign Up

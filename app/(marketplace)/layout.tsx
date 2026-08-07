@@ -6,7 +6,7 @@ import { SiteFooter } from "@/components/marketing/site-footer";
 // different header (Cart + Login vs Browse Products + Sign Up).
 export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen flex-col bg-[#f7f9fb]">
+    <div className="flex min-h-screen flex-col bg-[#f3f5f2]">
       <MarketplaceHeader />
       <div className="flex-1 space-y-6 py-6">{children}</div>
       <SiteFooter />

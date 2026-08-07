@@ -13,22 +13,26 @@ function buildPath(cycles: number): string {
 
 /**
  * The page's signature motif: a live vitals trace, the same kind of readout
- * our own hero product (a patient monitor) displays. Used both as the hero's
- * defining graphic and, at a thin scale, as section dividers in place of a
- * plain <hr> — one idea carried through the page rather than a one-off
- * decoration. Draw-on-scan animation lives in globals.css and is gated to
- * `prefers-reduced-motion: no-preference`, so this component needs no client JS.
+ * our own hero product (a patient monitor) displays. Rendered as two layers,
+ * matching how a real monitor screen actually reads as "live": a dim
+ * permanent trace (the phosphor history) plus a brighter glowing trace that
+ * continuously redraws on top of it — motion communicated by the redraw, not
+ * just a static line. Used both as the hero's defining graphic and, at a
+ * thin scale, as section dividers in place of a plain <hr>.
  */
 export function VitalsWaveform({
   cycles = 4,
   className,
   strokeWidth = 2,
+  ghostOpacity = 0.35,
 }: {
   cycles?: number;
   className?: string;
   strokeWidth?: number;
+  ghostOpacity?: number;
 }) {
   const width = cycles * 200;
+  const d = buildPath(cycles);
   return (
     <svg
       viewBox={`0 0 ${width} 60`}
@@ -36,8 +40,10 @@ export function VitalsWaveform({
       className={cn("vitals-trace w-full", className)}
       aria-hidden
     >
+      <path d={d} fill="none" stroke="currentColor" strokeWidth={strokeWidth} opacity={ghostOpacity} />
       <path
-        d={buildPath(cycles)}
+        className="vitals-scan"
+        d={d}
         fill="none"
         stroke="currentColor"
         strokeWidth={strokeWidth}

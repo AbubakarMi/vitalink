@@ -25,14 +25,17 @@
    * Landing-page redesign tokens (CEO "world class" pass) — additive, not a
    * rename of the brand-primary/verified/surface tokens above, so the
    * already-shipped marketplace/product/cart pages keep rendering exactly as
-   * before. "ink" intentionally equals brand-primary rather than duplicating
-   * it under a new hex, so the two systems can't drift apart.
+   * before. Palette below is the client-supplied swatch set (hospital
+   * monitor greens/grays), not the earlier invented mint-on-black.
    */
-  --color-ink: var(--color-brand-primary);
-  --color-ink-soft: #12251f;
-  --color-paper: #f3f7f5;
-  --color-signal: #6df5e1;
-  --color-line: #d9e4df;
+  --color-ink: #002708;
+  --color-ink-muted: #424940;
+  --color-ink-deep: #1a1c1b;
+  --color-ink-soft: #0f3e17;
+  --color-paper: #c1c9bd;
+  --color-signal: #8ea1a4;
+  --color-line: #abbfc2;
+  --color-live: #ba1a1a;
 }
 
 /*
@@ -193,14 +196,22 @@
 }
 
 /*
- * Signature motif: a live vitals trace (components/marketing/vitals-waveform.tsx)
- * scans left-to-right like a monitor readout. Only runs for users who haven't
- * asked for reduced motion — the no-preference query, not a JS check, so the
- * static fallback needs zero client JS.
+ * Signature motif: a live vitals trace (components/marketing/vitals-waveform.tsx).
+ * Two layers — a dim permanent "ghost" trace plus a bright glowing trace that
+ * redraws on a loop, the same way a real monitor shows a fading phosphor
+ * history under the live beam. Only the redraw + LIVE-dot pulse are animated;
+ * gated to prefers-reduced-motion: no-preference, no JS required.
  */
+.vitals-trace .vitals-scan {
+  filter: drop-shadow(0 0 3px currentColor) drop-shadow(0 0 10px currentColor);
+}
+
 @media (prefers-reduced-motion: no-preference) {
-  .vitals-trace path {
-    animation: vitals-scan 5s linear infinite;
+  .vitals-trace .vitals-scan {
+    animation: vitals-scan 4s linear infinite;
+  }
+  .live-dot {
+    animation: live-pulse 1.6s ease-in-out infinite;
   }
 }
 
@@ -210,5 +221,17 @@
   }
   to {
     stroke-dashoffset: 0;
+  }
+}
+
+@keyframes live-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.85);
   }
 }

@@ -9,7 +9,7 @@ import type { Product } from "@/lib/api/products";
  * overloading one card with two visual styles. */
 export function MarketplaceProductCard({ product }: { product: Product }) {
   return (
-    <div className="flex flex-col rounded-[10px] bg-white p-3">
+    <div className="flex flex-col rounded-[10px] border border-line bg-white p-3 transition-shadow hover:shadow-[0_8px_24px_rgba(0,39,8,0.08)]">
       <Link
         href={`/products/${product.slug}`}
         className="relative flex h-[248px] items-center justify-center rounded-[5px] bg-[#f4f4f2]"
@@ -38,29 +38,29 @@ export function MarketplaceProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className="mt-3 flex items-center justify-between">
-        <p className="text-xs text-[#717975]">{product.brand ?? "Vitalink"}</p>
+        <p className="font-mono text-xs text-text-muted">{product.brand ?? "Vitalink"}</p>
         {product.brandSku && (
-          <span className="rounded-md bg-[#fbfbf9] px-3 py-1.5 text-xs font-medium text-[#93a1b7]">
+          <span className="rounded-md bg-paper/50 px-3 py-1.5 font-mono text-xs font-medium text-ink-soft">
             {product.brandSku}
           </span>
         )}
       </div>
 
-      <Link href={`/products/${product.slug}`} className="mt-2 line-clamp-2 text-lg font-bold text-[#4a7a4a]">
+      <Link href={`/products/${product.slug}`} className="mt-2 line-clamp-2 text-lg font-bold text-ink hover:text-verified">
         {product.name}
       </Link>
 
-      <span className="mt-3 flex w-fit items-center gap-1 rounded-[3px] bg-[#f0ffdf] px-2.5 py-1.5 text-[10px] text-verified">
+      <span className="mt-3 flex w-fit items-center gap-1 rounded-[3px] bg-[#f0ffdf] px-2.5 py-1.5 font-mono text-[10px] text-verified">
         {product.categoryLabel ?? product.categorySlug}
       </span>
 
-      <hr className="mt-4 border-border" />
+      <hr className="mt-4 border-line" />
 
       <div className="mt-3 flex items-end justify-between">
         <div className="flex items-baseline gap-2 font-['Reddit_Sans',_sans-serif]">
-          <span className="text-xl text-verified">N{product.price.toLocaleString("en-NG")}</span>
+          <span className="text-xl text-ink">N{product.price.toLocaleString("en-NG")}</span>
           {product.originalPrice && (
-            <span className="text-sm text-[#c1c8c4] line-through">N{product.originalPrice.toLocaleString("en-NG")}</span>
+            <span className="text-sm text-text-muted line-through">N{product.originalPrice.toLocaleString("en-NG")}</span>
           )}
         </div>
         <AddToCartButton product={product} />

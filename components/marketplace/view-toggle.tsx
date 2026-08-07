@@ -25,17 +25,31 @@ export function ViewToggle({ activeView, search }: { activeView: "grid" | "list"
         href={hrefFor("grid")}
         aria-label="Grid view"
         aria-current={activeView === "grid"}
-        className={`flex size-11 items-center justify-center rounded-md ${activeView === "grid" ? "bg-verified" : "bg-[#717975]"}`}
+        className={`flex size-11 items-center justify-center rounded-md border ${activeView === "grid" ? "border-ink bg-ink" : "border-line bg-white"}`}
       >
-        <Image src="/marketplace/grid-view-icon.svg" alt="" width={20} height={20} className="invert" aria-hidden />
+        <Image
+          src="/marketplace/grid-view-icon.svg"
+          alt=""
+          width={20}
+          height={20}
+          className={activeView === "grid" ? "invert" : "opacity-50"}
+          aria-hidden
+        />
       </Link>
       <Link
         href={hrefFor("list")}
         aria-label="List view"
         aria-current={activeView === "list"}
-        className={`flex size-11 items-center justify-center rounded-md ${activeView === "list" ? "bg-verified" : "bg-[#717975]"}`}
+        className={`flex size-11 items-center justify-center rounded-md border ${activeView === "list" ? "border-ink bg-ink" : "border-line bg-white"}`}
       >
-        <Image src="/marketplace/list-view-icon.svg" alt="" width={20} height={20} className="invert" aria-hidden />
+        <Image
+          src="/marketplace/list-view-icon.svg"
+          alt=""
+          width={20}
+          height={20}
+          className={activeView === "list" ? "invert" : "opacity-50"}
+          aria-hidden
+        />
       </Link>
     </div>
   );
