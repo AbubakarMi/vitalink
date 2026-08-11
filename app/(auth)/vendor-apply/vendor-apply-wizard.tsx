@@ -428,8 +428,11 @@ export function VendorApplyWizard({
 
       {step === "success" && (
         <div className="space-y-4 py-10 text-center">
-          <span className="mx-auto flex size-14 items-center justify-center rounded-2xl bg-ink text-white">
-            <CheckCheck className="size-7" aria-hidden />
+          <span className="relative mx-auto flex size-14 items-center justify-center">
+            <span className="absolute inset-0 animate-ping rounded-2xl bg-ink/40" aria-hidden />
+            <span className="relative flex size-14 items-center justify-center rounded-2xl bg-ink text-white">
+              <CheckCheck className="size-7" aria-hidden />
+            </span>
           </span>
           <h2 className="font-[family-name:var(--font-newsreader)] text-3xl text-ink">Application Sent!</h2>
           <p className="mx-auto max-w-sm text-sm text-text-muted">
