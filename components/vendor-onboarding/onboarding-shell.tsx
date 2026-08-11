@@ -106,17 +106,22 @@ export function OnboardingShell({
                         aria-hidden
                       />
                     )}
-                    <span
-                      className={cn(
-                        "flex size-[44px] shrink-0 items-center justify-center rounded-full text-sm font-semibold transition-all duration-300",
-                        isDone
-                          ? "bg-verified text-white"
-                          : isActive
-                            ? "bg-ink text-white shadow-[0_0_0_4px_rgba(0,39,8,0.1)]"
-                            : "border border-line bg-white text-text-muted",
+                    <span className="relative flex size-[44px] shrink-0 items-center justify-center">
+                      {isActive && (
+                        <span className="absolute inset-0 animate-ping rounded-full bg-ink/40" aria-hidden />
                       )}
-                    >
-                      {isDone ? <Check className="size-4.5" aria-hidden /> : step.number}
+                      <span
+                        className={cn(
+                          "relative flex size-[44px] items-center justify-center rounded-full text-sm font-semibold transition-all duration-300",
+                          isDone
+                            ? "bg-verified text-white"
+                            : isActive
+                              ? "bg-ink text-white shadow-[0_0_0_4px_rgba(0,39,8,0.1)]"
+                              : "border border-line bg-white text-text-muted",
+                        )}
+                      >
+                        {isDone ? <Check className="size-4.5" aria-hidden /> : step.number}
+                      </span>
                     </span>
                     <div className="pt-2">
                       <p className={cn("text-sm font-semibold transition-colors", isActive ? "text-ink" : "text-text-muted")}>
