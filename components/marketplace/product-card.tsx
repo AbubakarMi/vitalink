@@ -9,10 +9,10 @@ import type { Product } from "@/lib/api/products";
  * overloading one card with two visual styles. */
 export function MarketplaceProductCard({ product }: { product: Product }) {
   return (
-    <div className="flex flex-col rounded-[10px] border border-line bg-white p-3 transition-shadow hover:shadow-[0_8px_24px_rgba(0,39,8,0.08)]">
+    <div className="flex flex-col rounded-2xl border border-line bg-white p-3 transition-shadow hover:shadow-[0_8px_24px_rgba(0,39,8,0.08)]">
       <Link
         href={`/products/${product.slug}`}
-        className="relative flex h-[248px] items-center justify-center rounded-[5px] bg-[#f4f4f2]"
+        className="relative flex h-[248px] items-center justify-center rounded-xl bg-[#f4f4f2]"
       >
         {product.trendPercent !== undefined && (
           <span
@@ -38,9 +38,9 @@ export function MarketplaceProductCard({ product }: { product: Product }) {
       </Link>
 
       <div className="mt-3 flex items-center justify-between">
-        <p className="font-mono text-xs text-text-muted">{product.brand ?? "Vitalink"}</p>
+        <p className="text-xs text-text-muted">{product.brand ?? "Vitalink"}</p>
         {product.brandSku && (
-          <span className="rounded-md bg-paper/50 px-3 py-1.5 font-mono text-xs font-medium text-ink-soft">
+          <span className="rounded-lg bg-mint/50 px-3 py-1.5 text-xs font-medium text-ink-soft">
             {product.brandSku}
           </span>
         )}
@@ -50,7 +50,7 @@ export function MarketplaceProductCard({ product }: { product: Product }) {
         {product.name}
       </Link>
 
-      <span className="mt-3 flex w-fit items-center gap-1 rounded-[3px] bg-[#f0ffdf] px-2.5 py-1.5 font-mono text-[10px] text-verified">
+      <span className="mt-3 flex w-fit items-center gap-1 rounded-full bg-mint px-2.5 py-1.5 text-[10px] font-medium text-verified">
         {product.categoryLabel ?? product.categorySlug}
       </span>
 

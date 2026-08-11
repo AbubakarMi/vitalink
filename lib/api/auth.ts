@@ -2,6 +2,15 @@ import "server-only";
 import { z } from "zod";
 import { apiClient, ApiError } from "./client";
 import { relayCookies } from "./cookie-relay";
+import {
+  authenticateMockUser,
+  clearMockSessionCookies,
+  createMockUser,
+  findMockUserById,
+  rotateMockSession,
+  setMockSessionCookies,
+} from "./mocks/auth-store";
+import { verifySession } from "@/lib/auth/dal";
 
 /**
  * Adapter over the real, already-shipped Zitadel-backed auth endpoints (see
@@ -9,7 +18,29 @@ import { relayCookies } from "./cookie-relay";
  * Plain server-only functions, not "use server" Server Actions — thin Server
  * Action wrappers get colocated with the actual login/register forms when that UI
  * is built; this file is the typed, validated boundary they'll call into.
+ *
+ * AUTH_DATA_SOURCE flips every function below between that live backend and an
+ * in-memory mock (lib/api/mocks/auth-store.ts) — same seam as
+ * PRODUCTS_DATA_SOURCE in lib/api/products.ts. Every caller gets the same
+ * Zod-validated response shape regardless of source, and mock sessions use
+ * real signed JWTs so lib/auth/session.ts and proxy.ts need no changes. See
+ * docs/MOCK_AUTH.md.
  */
+
+const SOURCE = process.env.AUTH_DATA_SOURCE ?? "mock";
+
+if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
+  // Mirrors lib/auth/permissions.ts's PERMISSIONS_SOURCE guard: a mock, in-memory
+  // user store with plaintext-compared passwords must never back a production
+  // deployment. Set AUTH_DATA_SOURCE=live once BACKEND_ORIGIN points at a real
+  // Zitadel-backed backend.
+  throw new Error(
+    "AUTH_DATA_SOURCE is still 'mock' in a production build. This fails the build on " +
+      "purpose: the mock auth store keeps users in memory with plaintext password " +
+      "comparisons and must never ship. Set AUTH_DATA_SOURCE=live once the real backend " +
+      "is reachable at BACKEND_ORIGIN. See docs/MOCK_AUTH.md.",
+  );
+}
 
 const BASE = "/auth";
 
@@ -58,6 +89,12 @@ export interface RegisterInput {
 }
 
 export async function register(input: RegisterInput): Promise<RegisterResponse> {
+  if (SOURCE === "mock") {
+    // Auto-verified: this app has no verify-email page/action yet, so requiring
+    // a real verification step would be a dead end in mock mode.
+    const user = createMockUser(input);
+    return { userId: user.userId, verificationEmailSent: true };
+  }
   const { data } = await apiClient.post<unknown>(`${BASE}/register`, {
     body: input,
     withCredentials: false,
@@ -76,6 +113,13 @@ export interface LoginInput {
  * `mfaRequired`/`availableMethods` to render the TOTP or OTP-email step next.
  */
 export async function login(input: LoginInput): Promise<LoginResponse> {
+  if (SOURCE === "mock") {
+    const user = authenticateMockUser(input.loginName, input.password);
+    // No seeded/created mock user carries MFA, so this always completes outright —
+    // see loginTotp/loginStartOtpEmail below for why MFA isn't modeled in mock mode.
+    await setMockSessionCookies(user);
+    return { mfaRequired: false, completed: true, flowId: null, availableMethods: [] };
+  }
   const { data, setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/login`, {
     body: input,
     withCredentials: false,
@@ -85,6 +129,11 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
 }
 
 export async function loginTotp(flowId: string, code: string): Promise<void> {
+  if (SOURCE === "mock") {
+    // Unreachable from the current UI (no mock user ever returns mfaRequired:
+    // true from login()), but kept honest rather than silently no-op-ing.
+    throw new ApiError(501, "MFA is not modeled in mock mode.");
+  }
   const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/login/totp`, {
     body: { flowId, code },
     withCredentials: false,
@@ -93,6 +142,9 @@ export async function loginTotp(flowId: string, code: string): Promise<void> {
 }
 
 export async function loginStartOtpEmail(flowId: string): Promise<{ maskedEmail: string }> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "MFA is not modeled in mock mode.");
+  }
   const { data } = await apiClient.post<unknown>(`${BASE}/login/otp-email/start`, {
     body: { flowId },
     withCredentials: false,
@@ -101,6 +153,9 @@ export async function loginStartOtpEmail(flowId: string): Promise<{ maskedEmail:
 }
 
 export async function loginVerifyOtpEmail(flowId: string, code: string): Promise<void> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "MFA is not modeled in mock mode.");
+  }
   const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/login/otp-email/verify`, {
     body: { flowId, code },
     withCredentials: false,
@@ -109,6 +164,9 @@ export async function loginVerifyOtpEmail(flowId: string, code: string): Promise
 }
 
 export async function resendLoginOtpEmail(flowId: string): Promise<void> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "MFA is not modeled in mock mode.");
+  }
   await apiClient.post(`${BASE}/login/otp-email/resend`, { body: { flowId }, withCredentials: false });
 }
 
@@ -120,6 +178,26 @@ export async function resendLoginOtpEmail(flowId: string): Promise<void> {
  * null return as "render nothing identity-specific," not as an auth failure.
  */
 export async function getCurrentUser(): Promise<CurrentUser | null> {
+  if (SOURCE === "mock") {
+    const session = await verifySession();
+    if (!session) {
+      return null;
+    }
+    // Re-reads the mock store (not just the JWT claims) so a freshly-registered
+    // user's phone number shows up here too, matching the live /auth/me contract
+    // of returning the current record rather than a snapshot from login time.
+    const user = findMockUserById(session.userId);
+    if (!user) {
+      return null;
+    }
+    return CurrentUserResponseSchema.parse({
+      userId: user.userId,
+      email: user.email,
+      phone: user.phone ?? null,
+      displayName: user.displayName,
+      accountType: user.accountType,
+    });
+  }
   try {
     const { data } = await apiClient.get<unknown>(`${BASE}/me`);
     return CurrentUserResponseSchema.parse(data);
@@ -138,6 +216,9 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
  * or expired (caller should redirect to /login).
  */
 export async function refreshSession(): Promise<boolean> {
+  if (SOURCE === "mock") {
+    return rotateMockSession();
+  }
   try {
     const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/refresh`);
     await relayCookies(setCookieHeaders);
@@ -151,6 +232,10 @@ export async function refreshSession(): Promise<boolean> {
 }
 
 export async function logout(): Promise<void> {
+  if (SOURCE === "mock") {
+    await clearMockSessionCookies();
+    return;
+  }
   const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/logout`);
   await relayCookies(setCookieHeaders);
 }

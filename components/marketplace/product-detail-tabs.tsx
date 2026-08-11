@@ -19,7 +19,7 @@ export function ProductDetailTabs({ product }: { product: Product }) {
   const [active, setActive] = useState<TabKey>("specs");
 
   return (
-    <div className="rounded-[10px] bg-white p-10">
+    <div className="rounded-2xl bg-white p-10">
       <div className="flex gap-8 border-b border-[#e1e3e4] pb-3">
         {TABS.map((tab) => (
           <button

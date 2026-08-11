@@ -46,8 +46,13 @@ export async function verifyAccessToken(token: string): Promise<SessionClaims | 
   try {
     const { payload } = await jwtVerify(token, getSigningKey(), {
       algorithms: ["HS256"],
-      issuer: process.env.AUTH_JWT_ISSUER,
-      audience: process.env.AUTH_JWT_AUDIENCE,
+      // `|| undefined`, not the bare env var: jose treats a *defined* issuer/audience
+      // option (even "") as "the token's iss/aud claim must equal that string", so a
+      // blank-but-set env var would reject every token that (correctly) omits the
+      // claim entirely — verifyAccessToken would then read every session as logged
+      // out. undefined is what actually means "don't check this claim".
+      issuer: process.env.AUTH_JWT_ISSUER || undefined,
+      audience: process.env.AUTH_JWT_AUDIENCE || undefined,
     });
 
     const accountType = payload.accountType ?? payload.AccountType;

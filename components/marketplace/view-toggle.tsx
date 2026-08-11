@@ -25,7 +25,7 @@ export function ViewToggle({ activeView, search }: { activeView: "grid" | "list"
         href={hrefFor("grid")}
         aria-label="Grid view"
         aria-current={activeView === "grid"}
-        className={`flex size-11 items-center justify-center rounded-md border ${activeView === "grid" ? "border-ink bg-ink" : "border-line bg-white"}`}
+        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "grid" ? "border-ink bg-ink" : "border-line bg-white"}`}
       >
         <Image
           src="/marketplace/grid-view-icon.svg"
@@ -40,7 +40,7 @@ export function ViewToggle({ activeView, search }: { activeView: "grid" | "list"
         href={hrefFor("list")}
         aria-label="List view"
         aria-current={activeView === "list"}
-        className={`flex size-11 items-center justify-center rounded-md border ${activeView === "list" ? "border-ink bg-ink" : "border-line bg-white"}`}
+        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "list" ? "border-ink bg-ink" : "border-line bg-white"}`}
       >
         <Image
           src="/marketplace/list-view-icon.svg"

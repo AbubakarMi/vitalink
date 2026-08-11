@@ -20,14 +20,18 @@ export function Testimonials() {
   return (
     <section className="bg-paper px-10 py-20">
       <div className="mx-auto max-w-3xl">
-        <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">Early feedback</p>
-        <h2 className="mt-2 font-[family-name:var(--font-newsreader)] text-3xl text-ink">From the first users</h2>
+        <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
+          Early feedback
+        </span>
+        <h2 className="mt-3 font-[family-name:var(--font-newsreader)] text-4xl leading-[1.1] tracking-[-0.02em] text-ink">
+          From the first users
+        </h2>
 
         <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2">
           {testimonials.map((testimonial) => (
-            <figure key={testimonial.name} className="rounded-[10px] border border-line bg-surface p-6">
+            <figure key={testimonial.name} className="rounded-2xl border border-line bg-surface p-6">
               <blockquote className="text-[15px] text-ink-soft">&ldquo;{testimonial.quote}&rdquo;</blockquote>
-              <figcaption className="mt-4 font-mono text-xs text-text-muted">— {testimonial.name}</figcaption>
+              <figcaption className="mt-4 text-xs text-text-muted">— {testimonial.name}</figcaption>
             </figure>
           ))}
         </div>

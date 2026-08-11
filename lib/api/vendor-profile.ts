@@ -1,6 +1,15 @@
 import "server-only";
 import { z } from "zod";
-import { apiClient } from "./client";
+import { apiClient, ApiError } from "./client";
+import {
+  addMockDocument,
+  addMockSettlementAccount,
+  completeMockDocuments,
+  getMockVendorProfile,
+  setMockDefaultSettlementAccount,
+  upsertMockBusinessProfile,
+} from "./mocks/vendor-profile-store";
+import { verifySession } from "@/lib/auth/dal";
 
 /**
  * Self-service vendor onboarding/profile adapter — real endpoints (see
@@ -9,7 +18,29 @@ import { apiClient } from "./client";
  * Rejected) are admin-initiated only (lib/api/admin/vendors.ts). The vendor-facing
  * UI is a completion checklist against this data, not a submit button — design
  * doc §4 (vendor KYC UI).
+ *
+ * VENDOR_PROFILE_DATA_SOURCE flips every function below between that live
+ * backend and an in-memory mock (lib/api/mocks/vendor-profile-store.ts), same
+ * seam as PRODUCTS_DATA_SOURCE/AUTH_DATA_SOURCE. See docs/MOCK_AUTH.md.
  */
+
+const SOURCE = process.env.VENDOR_PROFILE_DATA_SOURCE ?? "mock";
+
+if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
+  throw new Error(
+    "VENDOR_PROFILE_DATA_SOURCE is still 'mock' in a production build. This fails the " +
+      "build on purpose, mirroring AUTH_DATA_SOURCE's guard in lib/api/auth.ts. Set " +
+      "VENDOR_PROFILE_DATA_SOURCE=live once the real backend is reachable. See docs/MOCK_AUTH.md.",
+  );
+}
+
+async function currentMockUserId(): Promise<string> {
+  const session = await verifySession();
+  if (!session) {
+    throw new ApiError(401, "Not signed in.");
+  }
+  return session.userId;
+}
 
 const BASE = "/users/vendors";
 
@@ -62,11 +93,21 @@ export interface CreateVendorProfileInput {
 }
 
 export async function createVendorProfile(input: CreateVendorProfileInput): Promise<VendorProfile> {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    const profile = upsertMockBusinessProfile(userId, input);
+    return VendorProfileSchema.parse(profile);
+  }
   const { data } = await apiClient.post<unknown>(BASE, { body: input });
   return VendorProfileSchema.parse(data);
 }
 
 export async function getVendorProfile(): Promise<VendorProfile | null> {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    const profile = getMockVendorProfile(userId);
+    return profile ? VendorProfileSchema.parse(profile) : null;
+  }
   const { data } = await apiClient.get<unknown>(BASE);
   return data ? VendorProfileSchema.parse(data) : null;
 }
@@ -101,11 +142,21 @@ const BeginDocumentUploadResponseSchema = z.object({
 });
 
 export async function beginDocumentUpload(documents: BeginDocumentUploadInput[]) {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    const uploads = documents.map((document) => addMockDocument(userId, document));
+    return BeginDocumentUploadResponseSchema.parse({ uploads });
+  }
   const { data } = await apiClient.post<unknown>(`${BASE}/documents`, { body: { documents } });
   return BeginDocumentUploadResponseSchema.parse(data);
 }
 
 export async function completeDocumentUpload(documentIds: string[]) {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    completeMockDocuments(userId, documentIds);
+    return { documentIds };
+  }
   const { data } = await apiClient.put<unknown>(`${BASE}/documents`, { body: { documentIds } });
   return data;
 }
@@ -119,10 +170,19 @@ export interface AddSettlementAccountInput {
 }
 
 export async function addSettlementAccount(input: AddSettlementAccountInput) {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    return addMockSettlementAccount(userId, input);
+  }
   const { data } = await apiClient.post<unknown>(`${BASE}/settlement-accounts`, { body: input });
   return data;
 }
 
 export async function setDefaultSettlementAccount(accountId: string) {
+  if (SOURCE === "mock") {
+    const userId = await currentMockUserId();
+    setMockDefaultSettlementAccount(userId, accountId);
+    return;
+  }
   await apiClient.put(`${BASE}/settlement-accounts/${accountId}/default`);
 }

@@ -15,8 +15,10 @@ const CATEGORIES = [
  */
 export function ExploreCategories({ activeCategorySlug }: { activeCategorySlug?: string }) {
   return (
-    <div className="mx-auto max-w-6xl rounded-[10px] border border-line bg-white px-10 py-8">
-      <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">Browse by category</p>
+    <div className="mx-auto max-w-6xl rounded-2xl border border-line bg-white px-10 py-8">
+      <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
+        Browse by category
+      </span>
       <div className="mt-4 flex flex-wrap gap-3">
         {CATEGORIES.map((category) => (
           <Link
@@ -24,8 +26,8 @@ export function ExploreCategories({ activeCategorySlug }: { activeCategorySlug?:
             href={`/products?categorySlug=${category.slug}`}
             className={
               activeCategorySlug === category.slug
-                ? "rounded-full bg-ink px-5 py-2.5 font-mono text-xs text-white"
-                : "rounded-full border border-line px-5 py-2.5 font-mono text-xs text-ink-soft transition-colors hover:border-verified hover:text-verified"
+                ? "rounded-full bg-ink px-5 py-2.5 text-xs font-medium text-white"
+                : "rounded-full border border-line px-5 py-2.5 text-xs font-medium text-ink-soft transition-colors hover:border-verified hover:text-verified"
             }
           >
             {category.label}

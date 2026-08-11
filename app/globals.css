@@ -22,20 +22,31 @@
   --color-warning: #d97706;
 
   /*
-   * Landing-page redesign tokens (CEO "world class" pass) — additive, not a
-   * rename of the brand-primary/verified/surface tokens above, so the
-   * already-shipped marketplace/product/cart pages keep rendering exactly as
-   * before. Palette below is the client-supplied swatch set (hospital
-   * monitor greens/grays), not the earlier invented mint-on-black.
+   * Landing-page redesign tokens — additive, not a rename of the
+   * brand-primary/verified/surface tokens above, so already-shipped pages
+   * that never opted into this system keep rendering exactly as before.
+   *
+   * "ink"/"signal"/"live" are the hero's own hospital-monitor palette
+   * (client-supplied swatch set) and stay reserved for the hero, which was
+   * deliberately kept as-is. Everything else on the site instead follows the
+   * client's second reference (Ezerhealthcare/HealthBank EHR studies): a
+   * warm cream/mint editorial-SaaS system — "cream" (page background),
+   * "mint" (pale accent panels), "line" (hairline borders), "ink-soft"
+   * (headings/body on light) reused from that palette where the two systems
+   * overlap.
    */
   --color-ink: #002708;
   --color-ink-muted: #424940;
   --color-ink-deep: #1a1c1b;
-  --color-ink-soft: #0f3e17;
-  --color-paper: #c1c9bd;
+  --color-ink-soft: #14271d;
   --color-signal: #8ea1a4;
-  --color-line: #abbfc2;
   --color-live: #ba1a1a;
+
+  --color-cream: #f8f6f0;
+  --color-mint: #e3efe1;
+  --color-paper: #e3efe1;
+  --color-line: #e6e2d6;
+  --color-warm-muted: #71766a;
 }
 
 /*

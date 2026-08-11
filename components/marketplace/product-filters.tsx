@@ -30,7 +30,7 @@ export function ProductFilters({
   activeView: "grid" | "list";
 }) {
   return (
-    <div className="mx-auto max-w-6xl rounded-[10px] border border-line bg-white px-10 py-8">
+    <div className="mx-auto max-w-6xl rounded-2xl border border-line bg-white px-10 py-8">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <h2 className="text-xl font-semibold text-ink">Products</h2>
@@ -56,8 +56,8 @@ export function ProductFilters({
                 href={tab.slug ? `/products?categorySlug=${tab.slug}` : "/products"}
                 className={
                   isActive
-                    ? "rounded-full bg-ink px-4 py-1.5 font-mono text-xs text-white"
-                    : "rounded-full px-4 py-1.5 font-mono text-xs text-text-muted hover:text-ink"
+                    ? "rounded-full bg-ink px-4 py-1.5 text-xs font-medium text-white"
+                    : "rounded-full px-4 py-1.5 text-xs font-medium text-text-muted hover:text-ink"
                 }
               >
                 {tab.label}
@@ -69,14 +69,14 @@ export function ProductFilters({
         <div className="flex flex-wrap gap-3">
           <SortDropdown activeSort={activeSort} />
 
-          <form action="/products" className="flex items-center gap-2 rounded-md border border-line bg-white px-4 py-3">
+          <form action="/products" className="flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-3">
             <Image src="/marketplace/search-icon.svg" alt="" width={18} height={18} aria-hidden />
             <input
               type="search"
               name="search"
               defaultValue={activeSearch}
               placeholder="Search by product name"
-              className="w-48 bg-transparent font-mono text-sm text-ink-soft outline-none placeholder:text-text-muted"
+              className="w-48 bg-transparent text-sm text-ink-soft outline-none placeholder:text-text-muted"
             />
           </form>
         </div>

@@ -15,11 +15,13 @@ export function TrustedBrands() {
   return (
     <section className="bg-surface px-10 py-20">
       <div className="mx-auto max-w-5xl">
-        <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">What we verify</p>
-        <div className="mt-6 grid grid-cols-1 divide-y divide-line border-y border-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
+        <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
+          What we verify
+        </span>
+        <div className="mt-6 grid grid-cols-1 divide-y divide-line rounded-2xl border border-line sm:grid-cols-3 sm:divide-x sm:divide-y-0">
           {LEDGER.map((row) => (
-            <div key={row.label} className="py-6 sm:px-8 sm:py-2">
-              <p className="font-mono text-[11px] tracking-wide text-text-muted uppercase">{row.label}</p>
+            <div key={row.label} className="p-8">
+              <p className="text-[11px] font-medium tracking-wide text-text-muted uppercase">{row.label}</p>
               <p className="mt-2 text-ink-soft">{row.value}</p>
             </div>
           ))}

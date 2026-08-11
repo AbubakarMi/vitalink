@@ -83,11 +83,16 @@ Every resource adapter in `lib/api/` returns the same Zod-validated shape
 regardless of whether it's backed by real data or a fixture — see
 `lib/api/products.ts` for the pattern (a `PRODUCTS_DATA_SOURCE` env var flips
 the source). As of this writing, the backend has auth, vendor
-onboarding/KYC, and admin vendor/staff/role management — everything else
-(products, cart, orders, payments, disputes, analytics, category/brand
-browsing for anyone but staff) is mocked behind the same contract the real
-endpoint will need to satisfy. When a real endpoint ships, flipping the
-adapter is a one-file change; if the real response doesn't match the mocked
+onboarding/KYC, and admin vendor/staff/role management as real endpoints, but
+`AUTH_DATA_SOURCE`/`VENDOR_PROFILE_DATA_SOURCE` mock the first two anyway
+(`lib/api/auth.ts`, `lib/api/vendor-profile.ts`) so the full signup → login →
+dashboard journey works with zero backend/Docker dependencies during
+frontend-only work — see [`docs/MOCK_AUTH.md`](docs/MOCK_AUTH.md) for seeded
+demo accounts and limitations. Everything else (products, cart, orders,
+payments, disputes, analytics, category/brand browsing for anyone but staff)
+is mocked behind the same contract the real endpoint will need to satisfy.
+When a real endpoint ships or becomes reachable, flipping the adapter is a
+one-file (env var) change; if the real response doesn't match the mocked
 shape, Zod throws immediately in dev instead of failing silently later.
 
 ### The admin permission stub — do not remove the production guard

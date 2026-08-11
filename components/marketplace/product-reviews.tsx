@@ -7,7 +7,7 @@ import type { MockReview } from "@/lib/api/reviews";
  * see lib/api/mocks/reviews.ts for why. */
 export function ProductReviews({ reviews }: { reviews: MockReview[] }) {
   return (
-    <div className="rounded-[10px] bg-white p-10">
+    <div className="rounded-2xl bg-white p-10">
       <p className="text-xl text-[#1a4d3e]">Reviews ({reviews.length})</p>
       <hr className="mt-5 border-[#e1e3e4]" />
 
@@ -16,7 +16,7 @@ export function ProductReviews({ reviews }: { reviews: MockReview[] }) {
       ) : (
         <div className="mt-6 space-y-6">
           {reviews.map((review) => (
-            <div key={review.id} className="rounded-[10px] border border-[#e1e3e4] p-6">
+            <div key={review.id} className="rounded-2xl border border-[#e1e3e4] p-6">
               <div className="flex items-start gap-3">
                 <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-[#e6f4ea] text-xs font-bold text-[#4a7a4a]">
                   VB

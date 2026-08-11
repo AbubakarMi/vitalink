@@ -23,13 +23,17 @@ export async function FeaturedProducts() {
       <div className="mx-auto max-w-5xl">
         <div className="flex items-end justify-between">
           <div>
-            <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">Featured</p>
-            <h2 className="mt-2 font-[family-name:var(--font-newsreader)] text-3xl text-ink">In active demand</h2>
+            <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
+              Featured
+            </span>
+            <h2 className="mt-3 font-[family-name:var(--font-newsreader)] text-4xl leading-[1.1] tracking-[-0.02em] text-ink">
+              In active demand
+            </h2>
           </div>
           <Link
             href="/products"
             aria-label="Browse the marketplace"
-            className="flex items-center gap-2 font-mono text-xs text-verified hover:text-ink"
+            className="flex items-center gap-2 text-sm text-verified hover:text-ink"
           >
             View all
             <ArrowRight className="size-4" aria-hidden />
@@ -49,14 +53,14 @@ export function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/products/${product.slug}`}
-      className="group flex flex-col gap-3 rounded-[10px] border border-line bg-surface p-4 transition-shadow hover:shadow-[0_8px_24px_rgba(6,44,36,0.08)]"
+      className="group flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4 transition-shadow hover:shadow-[0_8px_24px_rgba(6,44,36,0.08)]"
     >
-      <div className="relative aspect-[4/3] w-full rounded-[5px] bg-surface-muted">
+      <div className="relative aspect-[4/3] w-full rounded-xl bg-surface-muted">
         {product.imageUrl && (
           <Image src={product.imageUrl} alt="" fill sizes="320px" className="object-contain p-6" />
         )}
         {product.badge && (
-          <Badge className="absolute top-3 right-3 rounded-[2px] bg-signal font-mono text-[10px] text-ink hover:bg-signal">
+          <Badge className="absolute top-3 right-3 rounded-full bg-mint text-[10px] text-ink-soft hover:bg-mint">
             {product.badge}
           </Badge>
         )}
@@ -65,7 +69,7 @@ export function ProductCard({ product }: { product: Product }) {
       <div className="flex items-center justify-between">
         <NairaPrice amount={product.price} className="text-xl" />
         <div className="flex flex-col items-end">
-          <span className="flex items-center gap-1 font-mono text-xs text-verified">
+          <span className="flex items-center gap-1 text-xs text-verified">
             Shop
             <Image
               src="/marketing/shop-arrow-1.svg"

@@ -1,14 +1,26 @@
-/**
- * Placeholder — UI comes later. The real login mechanics already exist in
- * lib/api/auth.ts (login/loginTotp/loginStartOtpEmail/loginVerifyOtpEmail),
- * branching on LoginResponse.mfaRequired/availableMethods per design doc §9.
- * A form here will bind to thin "use server" wrappers around those functions.
- */
+import Link from "next/link";
+import { AuthCard } from "@/components/auth/auth-card";
+import { LoginForm } from "./login-form";
+
+/** Real login — wired to lib/api/auth.ts's login() via ./actions.ts, not a
+ * decorative form. MFA (Totp/OtpEmail) is detected but not yet handled with
+ * its own UI — see actions.ts's honest message for that case. */
 export default function LoginPage() {
   return (
-    <main>
-      <h1>Log in</h1>
-      <p>Form pending — see lib/api/auth.ts for the wired MFA-aware login flow.</p>
-    </main>
+    <AuthCard
+      eyebrow="Vitalink"
+      title="Welcome back."
+      subtitle="Sign in to manage your orders and procurement."
+      footer={
+        <>
+          New to Vitalink?{" "}
+          <Link href="/register" className="font-medium text-verified hover:text-ink">
+            Create an account
+          </Link>
+        </>
+      }
+    >
+      <LoginForm />
+    </AuthCard>
   );
 }

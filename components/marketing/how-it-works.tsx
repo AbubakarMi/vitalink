@@ -29,8 +29,10 @@ export function HowItWorks() {
   return (
     <section className="bg-surface px-10 py-20">
       <div className="mx-auto max-w-5xl">
-        <p className="font-mono text-xs tracking-[0.2em] text-verified uppercase">How sourcing works</p>
-        <h2 className="mt-2 font-[family-name:var(--font-newsreader)] text-3xl text-ink">
+        <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
+          How sourcing works
+        </span>
+        <h2 className="mt-3 font-[family-name:var(--font-newsreader)] text-4xl leading-[1.1] tracking-[-0.02em] text-ink">
           From search to receiving dock.
         </h2>
 
@@ -39,7 +41,7 @@ export function HowItWorks() {
         <div className="mt-4 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map((step, i) => (
             <div key={step.label} className="border-t border-line pt-5">
-              <span className="font-mono text-sm text-verified/60">{String(i + 1).padStart(2, "0")}</span>
+              <span className="text-sm font-semibold text-verified/70">{String(i + 1).padStart(2, "0")}</span>
               <p className="mt-2 font-semibold text-ink">{step.label}</p>
               <p className="mt-2 text-sm text-text-muted">{step.copy}</p>
             </div>

@@ -20,7 +20,7 @@ export function SortDropdown({ activeSort }: { activeSort?: SortOption }) {
   }
 
   return (
-    <div className="relative flex items-center gap-2 rounded-md border border-line bg-white px-4 py-3 font-mono text-xs text-ink-soft">
+    <div className="relative flex items-center gap-2 rounded-lg border border-line bg-white px-4 py-3 text-xs font-medium text-ink-soft">
       <span className="pointer-events-none tracking-wide uppercase">Sort by</span>
       <select
         value={activeSort ?? ""}
