@@ -30,7 +30,15 @@ export interface MockUserRecord {
   roles: string[];
 }
 
-const usersByEmail = new Map<string, MockUserRecord>();
+// Pinned to globalThis, not a plain module-level `new Map()`: Next.js dev-mode
+// Turbopack/Fast Refresh re-evaluates server modules on unrelated file edits far
+// more often than a real process restart happens, which would otherwise wipe every
+// account created mid-session even though the browser's session cookie (a real
+// signed JWT, verified independently in lib/auth/session.ts) survives just fine.
+// Same idiom Next.js's own docs recommend for a dev-mode Prisma Client singleton.
+const globalForMockAuth = globalThis as unknown as { __vitalinkMockUsers?: Map<string, MockUserRecord> };
+const usersByEmail = globalForMockAuth.__vitalinkMockUsers ?? new Map<string, MockUserRecord>();
+globalForMockAuth.__vitalinkMockUsers = usersByEmail;
 
 function seedUser(user: Omit<MockUserRecord, "userId" | "displayName">): void {
   usersByEmail.set(user.email, {

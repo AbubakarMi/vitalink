@@ -60,7 +60,12 @@ export interface MockVendorProfile {
   settlementAccounts: MockSettlementAccount[];
 }
 
-const profilesByUserId = new Map<string, MockVendorProfile>();
+// Pinned to globalThis for the same reason as lib/api/mocks/auth-store.ts's
+// usersByEmail — survives Next.js dev-mode module re-evaluation on unrelated
+// file edits, not just a full process restart.
+const globalForMockVendorProfiles = globalThis as unknown as { __vitalinkMockVendorProfiles?: Map<string, MockVendorProfile> };
+const profilesByUserId = globalForMockVendorProfiles.__vitalinkMockVendorProfiles ?? new Map<string, MockVendorProfile>();
+globalForMockVendorProfiles.__vitalinkMockVendorProfiles = profilesByUserId;
 
 export function getMockVendorProfile(userId: string): MockVendorProfile | undefined {
   return profilesByUserId.get(userId);
