@@ -77,12 +77,16 @@ immediately afterward.
   the bytes; `completeDocumentUpload` just flips a boolean in the mock store.
   The wizard's UX flow (select file → "uploaded" state → continue) works
   end-to-end, but nothing is retrievable afterward.
-- **Vendor verification status starts at `Pending` and stays there.** The real
-  backend's status transitions (`Pending → UnderReview → Verified/Rejected`)
-  are admin-initiated only (`lib/api/admin/vendors.ts`, which is still
-  live-only, not mocked) — the mock doesn't attempt to fake an admin approval
-  workflow. A mock vendor can complete the wizard but will see a `Pending`
-  badge on their dashboard indefinitely.
+- **Vendor verification status is auto-set to `Verified` on profile
+  creation.** The real backend's status transitions
+  (`Pending → UnderReview → Verified/Rejected`) are admin-initiated only
+  (`lib/api/admin/vendors.ts`, which is still live-only, not mocked) — the
+  mock doesn't attempt to fake an admin approval workflow. Without
+  auto-verifying, a mock vendor could complete the wizard but would never
+  pass `app/vendor/layout.tsx`'s Verified-status gate, making
+  `/vendor/dashboard` (and everything behind it) permanently unreachable in
+  mock mode — so this is the same "make the whole journey click-through-able"
+  reasoning that already auto-verifies email.
 - **Admin's vendor/staff/role management (`lib/api/admin/*.ts`) is still
   live-only.** The `staff@vitalink.dev` seed account gets you into
   `/admin/dashboard`, but pages that call those adapters still need

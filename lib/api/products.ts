@@ -6,6 +6,13 @@ import { type SortOption } from "./product-sort";
 
 export { SORT_OPTIONS, type SortOption } from "./product-sort";
 
+/** Vendor-facing lifecycle status for a listing — absent on buyer-facing
+ * products (a vendor's inventory *is* the marketplace catalog, scoped to
+ * their own vendorId, with these extra management fields buyer views never
+ * read or send). See docs/superpowers/specs/2026-08-12-vendor-dashboard-round1-design.md §2. */
+export const VENDOR_PRODUCT_STATUSES = ["Active", "PendingReview", "OutOfStock", "Archived", "Rejected"] as const;
+export type VendorProductStatus = (typeof VENDOR_PRODUCT_STATUSES)[number];
+
 const ProductSchema = z.object({
   id: z.string(),
   slug: z.string(),
@@ -38,8 +45,22 @@ const ProductSchema = z.object({
   technicalSpecs: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
   includedAccessories: z.array(z.string()).optional(),
   clinicalUseCases: z.array(z.string()).optional(),
+  // Vendor dashboard fields (round 1) — optional, buyer-facing code paths
+  // never set or read these.
+  vendorId: z.string().optional(),
+  status: z.enum(VENDOR_PRODUCT_STATUSES).optional(),
+  /** Internal Vitalink SKU (e.g. "VIT-CON0001") — distinct from brandSku,
+   * which is the manufacturer's own model number. */
+  sku: z.string().optional(),
+  promoPrice: z.number().optional(),
+  lowStockThreshold: z.number().optional(),
+  /** Numbered how-to-use steps shown in the New Product wizard's verification
+   * step and on a draft product's detail view — distinct from technicalSpecs/
+   * includedAccessories/clinicalUseCases, which are the published-page tabs. */
+  usageTutorial: z.array(z.object({ title: z.string(), body: z.string() })).optional(),
 });
 export type Product = z.infer<typeof ProductSchema>;
+export { ProductSchema };
 
 /**
  * PRODUCTS_DATA_SOURCE flips this adapter from mock to live once the backend
