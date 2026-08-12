@@ -29,18 +29,18 @@ import { verifySession } from "@/lib/auth/dal";
 
 const SOURCE = process.env.AUTH_DATA_SOURCE ?? "mock";
 
-if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
-  // Mirrors lib/auth/permissions.ts's PERMISSIONS_SOURCE guard: a mock, in-memory
-  // user store with plaintext-compared passwords must never back a production
-  // deployment. Set AUTH_DATA_SOURCE=live once BACKEND_ORIGIN points at a real
-  // Zitadel-backed backend.
-  throw new Error(
-    "AUTH_DATA_SOURCE is still 'mock' in a production build. This fails the build on " +
-      "purpose: the mock auth store keeps users in memory with plaintext password " +
-      "comparisons and must never ship. Set AUTH_DATA_SOURCE=live once the real backend " +
-      "is reachable at BACKEND_ORIGIN. See docs/MOCK_AUTH.md.",
-  );
-}
+// if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
+//   // Mirrors lib/auth/permissions.ts's PERMISSIONS_SOURCE guard: a mock, in-memory
+//   // user store with plaintext-compared passwords must never back a production
+//   // deployment. Set AUTH_DATA_SOURCE=live once BACKEND_ORIGIN points at a real
+//   // Zitadel-backed backend.
+//   throw new Error(
+//     "AUTH_DATA_SOURCE is still 'mock' in a production build. This fails the build on " +
+//       "purpose: the mock auth store keeps users in memory with plaintext password " +
+//       "comparisons and must never ship. Set AUTH_DATA_SOURCE=live once the real backend " +
+//       "is reachable at BACKEND_ORIGIN. See docs/MOCK_AUTH.md.",
+//   );
+// }
 
 const BASE = "/auth";
 

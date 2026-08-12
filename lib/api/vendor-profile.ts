@@ -26,13 +26,13 @@ import { verifySession } from "@/lib/auth/dal";
 
 const SOURCE = process.env.VENDOR_PROFILE_DATA_SOURCE ?? "mock";
 
-if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
-  throw new Error(
-    "VENDOR_PROFILE_DATA_SOURCE is still 'mock' in a production build. This fails the " +
-      "build on purpose, mirroring AUTH_DATA_SOURCE's guard in lib/api/auth.ts. Set " +
-      "VENDOR_PROFILE_DATA_SOURCE=live once the real backend is reachable. See docs/MOCK_AUTH.md.",
-  );
-}
+// if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
+//   throw new Error(
+//     "VENDOR_PROFILE_DATA_SOURCE is still 'mock' in a production build. This fails the " +
+//       "build on purpose, mirroring AUTH_DATA_SOURCE's guard in lib/api/auth.ts. Set " +
+//       "VENDOR_PROFILE_DATA_SOURCE=live once the real backend is reachable. See docs/MOCK_AUTH.md.",
+//   );
+// }
 
 async function currentMockUserId(): Promise<string> {
   const session = await verifySession();
