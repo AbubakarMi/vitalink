@@ -100,6 +100,17 @@ their `_DATA_SOURCE` is still `"mock"` when `NODE_ENV=production` — same
 pattern as `lib/auth/permissions.ts`'s `PERMISSIONS_SOURCE` guard. A
 production build cannot silently ship the mock store.
 
+### Demo/preview deploys with no live backend yet
+
+Set `ALLOW_MOCK_IN_PRODUCTION=true` (as a platform env var — Netlify site
+settings, Vercel project env vars, etc., never committed to the repo) to let a
+production build proceed anyway with all three data sources still mocked.
+This exists for exactly one case: a throwaway demo/preview deploy (e.g. a
+Netlify link to show a working UI) where there's no real backend to point at
+yet and no real user data at risk. It must never be set on an actual
+production deployment — the plaintext-password mock user store and the
+open-permission stub are the reasons the guards exist in the first place.
+
 ## Switching to the live backend
 
 Once the .NET backend is up (`docker compose up` + `dotnet run` in

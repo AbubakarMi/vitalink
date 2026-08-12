@@ -29,18 +29,25 @@ import { verifySession } from "@/lib/auth/dal";
 
 const SOURCE = process.env.AUTH_DATA_SOURCE ?? "mock";
 
-// if (SOURCE === "mock" && process.env.NODE_ENV === "production") {
-//   // Mirrors lib/auth/permissions.ts's PERMISSIONS_SOURCE guard: a mock, in-memory
-//   // user store with plaintext-compared passwords must never back a production
-//   // deployment. Set AUTH_DATA_SOURCE=live once BACKEND_ORIGIN points at a real
-//   // Zitadel-backed backend.
-//   throw new Error(
-//     "AUTH_DATA_SOURCE is still 'mock' in a production build. This fails the build on " +
-//       "purpose: the mock auth store keeps users in memory with plaintext password " +
-//       "comparisons and must never ship. Set AUTH_DATA_SOURCE=live once the real backend " +
-//       "is reachable at BACKEND_ORIGIN. See docs/MOCK_AUTH.md.",
-//   );
-// }
+// ALLOW_MOCK_IN_PRODUCTION is a narrow, explicit escape hatch for demo/preview
+// deploys with no live backend yet (e.g. a Netlify preview) — it must be set
+// deliberately per-deployment, never left on for a real production release.
+// See docs/MOCK_AUTH.md.
+const ALLOW_MOCK_IN_PRODUCTION = process.env.ALLOW_MOCK_IN_PRODUCTION === "true";
+
+if (SOURCE === "mock" && process.env.NODE_ENV === "production" && !ALLOW_MOCK_IN_PRODUCTION) {
+  // Mirrors lib/auth/permissions.ts's PERMISSIONS_SOURCE guard: a mock, in-memory
+  // user store with plaintext-compared passwords must never back a production
+  // deployment. Set AUTH_DATA_SOURCE=live once BACKEND_ORIGIN points at a real
+  // Zitadel-backed backend.
+  throw new Error(
+    "AUTH_DATA_SOURCE is still 'mock' in a production build. This fails the build on " +
+      "purpose: the mock auth store keeps users in memory with plaintext password " +
+      "comparisons and must never ship. Set AUTH_DATA_SOURCE=live once the real backend " +
+      "is reachable at BACKEND_ORIGIN, or set ALLOW_MOCK_IN_PRODUCTION=true for a " +
+      "throwaway demo deploy with no real user data. See docs/MOCK_AUTH.md.",
+  );
+}
 
 const BASE = "/auth";
 

@@ -12,19 +12,22 @@ export function permissionName(resource: string, action: string): string {
 
 const PERMISSIONS_SOURCE = process.env.PERMISSIONS_SOURCE ?? "stub";
 
-// if (PERMISSIONS_SOURCE === "stub" && process.env.NODE_ENV === "production") {
-//   // Backend does not yet expose the current staff user's permission list
-//   // (CurrentUserResponse/JWT claims carry AccountType and Roles[] only, not
-//   // permissions — see design doc §5 and §10 item 1). Until that lands,
-//   // hasPermission() fails open for frontend-dev usability, which must never ship.
-//   throw new Error(
-//     "PERMISSIONS_SOURCE is still 'stub' in a production build. This fails the build " +
-//       "on purpose: the admin permission stub bypasses all permission checks and must " +
-//       "never ship. Set PERMISSIONS_SOURCE=live once the backend exposes the current " +
-//       "user's permission list (design doc §10) and lib/auth/permissions.ts is wired " +
-//       "to read it.",
-//   );
-// }
+// See lib/api/auth.ts's identical ALLOW_MOCK_IN_PRODUCTION guard/comment.
+const ALLOW_MOCK_IN_PRODUCTION = process.env.ALLOW_MOCK_IN_PRODUCTION === "true";
+
+if (PERMISSIONS_SOURCE === "stub" && process.env.NODE_ENV === "production" && !ALLOW_MOCK_IN_PRODUCTION) {
+  // Backend does not yet expose the current staff user's permission list
+  // (CurrentUserResponse/JWT claims carry AccountType and Roles[] only, not
+  // permissions — see design doc §5 and §10 item 1). Until that lands,
+  // hasPermission() fails open for frontend-dev usability, which must never ship.
+  throw new Error(
+    "PERMISSIONS_SOURCE is still 'stub' in a production build. This fails the build " +
+      "on purpose: the admin permission stub bypasses all permission checks and must " +
+      "never ship. Set PERMISSIONS_SOURCE=live once the backend exposes the current " +
+      "user's permission list (design doc §10) and lib/auth/permissions.ts is wired " +
+      "to read it, or set ALLOW_MOCK_IN_PRODUCTION=true for a throwaway demo deploy.",
+  );
+}
 
 /**
  * Checks whether the current session holds a given permission. Fails open with a
