@@ -18,7 +18,7 @@ const testimonials = [
 
 export function Testimonials() {
   return (
-    <section className="bg-paper px-10 py-20">
+    <section className="bg-paper px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
       <div className="mx-auto max-w-3xl">
         <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
           Early feedback

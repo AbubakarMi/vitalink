@@ -65,7 +65,7 @@ export function DashboardShell({
   }, [mobileNavOpen]);
 
   return (
-    <div className="flex h-screen flex-col bg-cream print:h-auto print:block">
+    <div className="flex h-dvh flex-col bg-cream print:h-auto print:block">
       <header className="flex shrink-0 items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10 print:hidden">
         <div className="flex items-center gap-2">
           <button

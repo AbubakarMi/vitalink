@@ -22,7 +22,7 @@ export function AuthCard({
   footer: React.ReactNode;
 }) {
   return (
-    <div className="grid min-h-screen grid-cols-1 lg:grid-cols-2">
+    <div className="grid min-h-dvh grid-cols-1 lg:grid-cols-2">
       <div className="relative hidden flex-col justify-between overflow-hidden bg-ink px-12 py-10 text-white lg:flex">
         <VitalsWaveform
           cycles={5}

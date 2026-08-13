@@ -82,7 +82,7 @@ function VendorHoldingPage({
   action?: { href: string; label: string };
 }) {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-cream px-6 py-16">
+    <div className="flex min-h-dvh flex-col items-center justify-center bg-cream px-6 py-16">
       <Link href="/" className="font-alata text-xl tracking-tight text-ink">
         VITALINK
       </Link>

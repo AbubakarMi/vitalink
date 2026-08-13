@@ -19,7 +19,7 @@ export async function FeaturedProducts() {
   const products = (await listProducts()).slice(0, FEATURED_COUNT);
 
   return (
-    <section className="bg-paper px-10 py-20">
+    <section className="bg-paper px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
       <div className="mx-auto max-w-5xl">
         <div className="flex items-end justify-between">
           <div>

@@ -13,7 +13,7 @@ const LEDGER = [
  */
 export function TrustedBrands() {
   return (
-    <section className="bg-surface px-10 py-20">
+    <section className="bg-surface px-4 py-12 sm:px-6 sm:py-16 lg:px-10 lg:py-20">
       <div className="mx-auto max-w-5xl">
         <span className="inline-block rounded-full bg-mint px-3 py-1 text-xs font-medium tracking-wide text-ink-soft uppercase">
           What we verify

@@ -38,8 +38,8 @@ function initials(name: string): string {
  */
 export function MarketplaceHeader() {
   return (
-    <header className="border-b border-line bg-cream px-10 py-4">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-8">
+    <header className="border-b border-line bg-cream px-4 py-4 sm:px-6 lg:px-10">
+      <div className="mx-auto flex w-full max-w-6xl items-center gap-4 sm:gap-8">
         <Link href="/" className="font-alata text-2xl tracking-tight text-ink">
           VITALINK
         </Link>
@@ -81,8 +81,8 @@ async function AccountSlot() {
       <span className="flex size-10 items-center justify-center rounded-full bg-mint text-sm font-bold text-ink-soft">
         {initials(session.displayName || session.email)}
       </span>
-      <div className="flex flex-col">
-        <span className="text-xs text-ink">{session.displayName || session.email}</span>
+      <div className="flex min-w-0 flex-col">
+        <span className="max-w-28 truncate text-xs text-ink sm:max-w-none">{session.displayName || session.email}</span>
         <span className="w-fit rounded-full bg-mint px-1.5 py-0.5 text-[9px] font-medium tracking-wide text-ink-soft uppercase">
           {ACCOUNT_TYPE_LABEL[session.accountType] ?? session.accountType}
         </span>

@@ -49,7 +49,7 @@ export function OnboardingShell({
   const activeStep = VENDOR_ONBOARDING_STEPS[activeIndex];
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-dvh bg-cream">
       <div className="h-[3px] bg-signal" />
 
       <header className="flex items-center justify-between border-b border-line px-10 py-4">

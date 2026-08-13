@@ -9,7 +9,7 @@ import Link from "next/link";
  */
 export function SiteFooter() {
   return (
-    <footer className="border-t border-line bg-cream px-10 py-16">
+    <footer className="border-t border-line bg-cream px-4 py-10 sm:px-6 sm:py-12 lg:px-10 lg:py-16">
       <div className="mx-auto flex max-w-6xl flex-wrap justify-between gap-12">
         <div>
           <span className="font-alata text-2xl text-ink">VITALINK</span>

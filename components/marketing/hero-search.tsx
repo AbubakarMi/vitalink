@@ -20,7 +20,7 @@ const QUICK_CATEGORIES = [
  */
 export function HeroSearch() {
   return (
-    <section className="relative overflow-hidden bg-ink px-10 pt-16 pb-24 text-white">
+    <section className="relative overflow-hidden bg-ink px-4 pt-12 pb-16 text-white sm:px-6 sm:pt-16 sm:pb-20 lg:px-10 lg:pt-16 lg:pb-24">
       <VitalsWaveform
         cycles={6}
         strokeWidth={1.5}
