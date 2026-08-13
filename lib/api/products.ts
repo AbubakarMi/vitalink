@@ -110,6 +110,17 @@ export async function listProductsPaged(
   return { items: all.slice(start, start + pageSize), totalCount, page, pageSize, totalPages };
 }
 
+/** Bulk lookup for rendering a fixed set of ids (Intent Search recommendation
+ * cards, cart line items) — preserves the input order, silently drops ids
+ * that no longer resolve rather than throwing. */
+export async function getProductsByIds(ids: string[]): Promise<Product[]> {
+  "use cache";
+  if (ids.length === 0) return [];
+  const all = await listProducts();
+  const byId = new Map(all.map((product) => [product.id, product]));
+  return ids.map((id) => byId.get(id)).filter((product): product is Product => Boolean(product));
+}
+
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   "use cache";
   if (SOURCE === "live") {

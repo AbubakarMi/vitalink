@@ -1,74 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChartPie, Package, ShoppingBag, ArrowLeftRight, BarChart3, Settings as SettingsIcon, Menu, X } from "lucide-react";
+import { Bell, SquarePen, MessageSquare, History, Store, Settings as SettingsIcon, Menu, X, ShoppingCart } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCart } from "@/lib/cart/store";
 import { AccountMenu } from "@/components/ui/account-menu";
 
 /**
- * Persistent vendor dashboard chrome (sidebar + header) — wraps every page
- * under app/vendor/ once a vendor is signed in and verified. Role-scoped
- * per the "components never cross role boundaries" rule (frontend
- * architecture doc §2.3): this never gets imported from app/buyer or
- * app/admin, even though a sidebar+header shell "looks reusable".
+ * Persistent buyer dashboard chrome (sidebar + header) — wraps every page
+ * under app/buyer/ once a buyer is signed in. Role-scoped per the
+ * "components never cross role boundaries" rule (frontend architecture doc
+ * §2.3) — this is its own component, not a reuse of components/vendor's
+ * dashboard-shell, even though the structure looks similar.
  *
- * Below `lg` the sidebar collapses into a hamburger-triggered slide-over
- * (no separate mobile nav component was in the mockups — everything below
- * `lg` is this component's own responsive treatment).
+ * Nav is New Search / Chats / History / Settings, not a stats "Overview" —
+ * the buyer's home is the Intent Search chat, not a dashboard of numbers
+ * (no mockup in the reference folder showed a buyer stats page).
  */
 
 const NAV_ITEMS = [
-  { href: "/vendor/dashboard", label: "Overview", icon: ChartPie },
-  { href: "/vendor/products", label: "Global Inventory", icon: Package },
-  { href: "/vendor/orders", label: "Orders", icon: ShoppingBag },
-  { href: "/vendor/transactions", label: "Transactions", icon: ArrowLeftRight },
+  { href: "/buyer/dashboard", label: "New Search", icon: SquarePen },
+  { href: "/products", label: "Marketplace", icon: Store },
+  { href: "/buyer/chats", label: "Chats", icon: MessageSquare },
+  { href: "/buyer/orders", label: "History", icon: History },
 ] as const;
 
-const NAV_ITEMS_BOTTOM = [
-  { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
-  { href: "/vendor/settings", label: "Settings", icon: SettingsIcon },
-] as const;
+const NAV_ITEMS_BOTTOM = [{ href: "/buyer/settings", label: "Settings", icon: SettingsIcon }] as const;
 
 export function DashboardShell({
-  vendorName,
-  walletBalance,
-  currency,
+  buyerName,
   children,
 }: {
-  vendorName: string;
-  walletBalance: number;
-  currency: string;
+  buyerName: string;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { itemCount } = useCart();
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
 
-  // Close the drawer whenever navigation actually happens, not just on click
-  // (covers back/forward and any programmatic navigation too). Adjusting
-  // state during render (not in an effect) per React's guidance for
-  // resetting state when a prop changes — avoids the extra
-  // render-then-effect-then-render cascade a useEffect version would cause.
   const [prevPathname, setPrevPathname] = useState(pathname);
   if (pathname !== prevPathname) {
     setPrevPathname(pathname);
     setMobileNavOpen(false);
   }
 
-  useEffect(() => {
-    if (!mobileNavOpen) return;
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") setMobileNavOpen(false);
-    }
-    document.addEventListener("keydown", onKeyDown);
-    return () => document.removeEventListener("keydown", onKeyDown);
-  }, [mobileNavOpen]);
-
   return (
-    <div className="flex h-dvh flex-col bg-cream print:h-auto print:block">
-      <div className="h-[3px] shrink-0 bg-signal print:hidden" />
-      <header className="flex shrink-0 items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10 print:hidden">
+    <div className="flex h-dvh flex-col bg-cream">
+      <div className="h-[3px] shrink-0 bg-signal" />
+      <header className="flex shrink-0 items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -78,7 +59,7 @@ export function DashboardShell({
           >
             <Menu className="size-5" aria-hidden />
           </button>
-          <Link href="/vendor/dashboard" className="font-alata text-lg tracking-tight text-ink sm:text-xl">
+          <Link href="/buyer/dashboard" className="font-alata text-lg tracking-tight text-ink sm:text-xl">
             VITALINK
           </Link>
         </div>
@@ -90,16 +71,24 @@ export function DashboardShell({
           >
             <Bell className="size-4.5" aria-hidden />
           </button>
-          <span className="hidden items-center gap-1.5 rounded-full bg-mint px-3 py-1.5 text-sm font-medium text-ink sm:flex">
-            {currency === "NGN" ? "N" : currency}
-            {walletBalance.toLocaleString("en-NG")}
-          </span>
-          <AccountMenu name={vendorName} badge="Vendor" />
+          <Link
+            href="/buyer/cart"
+            aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`}
+            className="relative flex size-9 items-center justify-center rounded-full text-text-muted transition-colors hover:bg-mint hover:text-ink"
+          >
+            <ShoppingCart className="size-4.5" aria-hidden />
+            {itemCount > 0 && (
+              <span className="absolute -top-0.5 -right-0.5 flex size-4 items-center justify-center rounded-full bg-verified text-[10px] font-semibold text-white">
+                {itemCount > 9 ? "9+" : itemCount}
+              </span>
+            )}
+          </Link>
+          <AccountMenu name={buyerName} badge="Buyer" />
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
-        <aside className="vendor-scroll hidden w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-line bg-white px-4 py-6 lg:flex print:hidden">
+      <div className="flex flex-1 overflow-hidden">
+        <aside className="vendor-scroll hidden w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-line bg-white px-4 py-6 lg:flex">
           <SidebarNav pathname={pathname} />
         </aside>
 
@@ -131,9 +120,7 @@ export function DashboardShell({
           </div>
         )}
 
-        <main className="vendor-scroll min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 print:overflow-visible print:p-0">
-          {children}
-        </main>
+        <main className="vendor-scroll min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">{children}</main>
       </div>
     </div>
   );
@@ -153,14 +140,14 @@ function SidebarNav({
       {!bottomOnly && (
         <nav className="space-y-1">
           {NAV_ITEMS.map((item) => (
-            <VendorNavLink key={item.href} item={item} active={pathname?.startsWith(item.href) ?? false} />
+            <BuyerNavLink key={item.href} item={item} active={pathname?.startsWith(item.href) ?? false} />
           ))}
         </nav>
       )}
       {!topOnly && (
-        <nav className="mt-8 space-y-1 lg:mt-0">
+        <nav className="mt-8 space-y-1 border-t border-line pt-4 lg:mt-0 lg:border-t-0 lg:pt-0">
           {NAV_ITEMS_BOTTOM.map((item) => (
-            <VendorNavLink key={item.href} item={item} active={pathname?.startsWith(item.href) ?? false} />
+            <BuyerNavLink key={item.href} item={item} active={pathname === item.href} />
           ))}
         </nav>
       )}
@@ -168,11 +155,11 @@ function SidebarNav({
   );
 }
 
-function VendorNavLink({
+function BuyerNavLink({
   item,
   active,
 }: {
-  item: { href: string; label: string; icon: typeof ChartPie };
+  item: { href: string; label: string; icon: typeof SquarePen };
   active: boolean;
 }) {
   const Icon = item.icon;

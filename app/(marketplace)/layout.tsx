@@ -1,10 +1,26 @@
 import { MarketplaceHeader } from "@/components/marketplace/marketplace-header";
 import { SiteFooter } from "@/components/marketing/site-footer";
+import { verifySession } from "@/lib/auth/dal";
+import { getCurrentUser } from "@/lib/api/auth";
+import { DashboardShell } from "@/components/buyer/dashboard-shell";
 
-// No auth check: the marketplace listing is public (design doc §2.1), same
-// as (marketing) — split into its own group only because it needs a
-// different header (Cart + Login vs Browse Products + Sign Up).
-export default function MarketplaceLayout({ children }: { children: React.ReactNode }) {
+// Genuinely dynamic (verifySession reads cookies) — not prerenderable for
+// anyone, guest included. That's the deliberate tradeoff: a signed-in buyer
+// gets their real dashboard shell (sidebar, cart count, account menu) on
+// this exact URL instead of a second /buyer/catalog duplicate that drops
+// the sidebar the moment they browse the catalog — one route, chrome
+// chosen by who's looking at it, same idea as proxy.ts choosing behavior
+// by session rather than duplicating routes per role.
+export const instant = false;
+
+export default async function MarketplaceLayout({ children }: { children: React.ReactNode }) {
+  const session = await verifySession();
+
+  if (session?.accountType === "Customer") {
+    const user = await getCurrentUser();
+    return <DashboardShell buyerName={user?.displayName ?? "Buyer"}>{children}</DashboardShell>;
+  }
+
   return (
     <div className="flex min-h-dvh flex-col bg-cream">
       <MarketplaceHeader />

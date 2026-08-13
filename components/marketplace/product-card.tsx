@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { BadgeCheck } from "lucide-react";
 import { AddToCartButton } from "@/components/marketplace/add-to-cart-button";
 import type { Product } from "@/lib/api/products";
 
@@ -50,9 +51,17 @@ export function MarketplaceProductCard({ product }: { product: Product }) {
         {product.name}
       </Link>
 
-      <span className="mt-3 flex w-fit items-center gap-1 rounded-full bg-mint px-2.5 py-1.5 text-[10px] font-medium text-verified">
-        {product.categoryLabel ?? product.categorySlug}
-      </span>
+      <div className="mt-3 flex flex-wrap items-center gap-1.5">
+        <span className="flex w-fit items-center gap-1 rounded-full bg-mint px-2.5 py-1.5 text-[10px] font-medium text-verified">
+          {product.categoryLabel ?? product.categorySlug}
+        </span>
+        {product.badge && (
+          <span className="flex w-fit items-center gap-1 rounded-full bg-mint px-2.5 py-1.5 text-[10px] font-medium text-verified">
+            <BadgeCheck className="size-3" aria-hidden />
+            {product.badge}
+          </span>
+        )}
+      </div>
 
       <hr className="mt-4 border-line" />
 

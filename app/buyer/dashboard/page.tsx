@@ -1,29 +1,25 @@
 import { requireAccountType } from "@/lib/auth/dal";
-import { getCurrentUser } from "@/lib/api/auth";
-import { listOrdersForCurrentUser } from "@/lib/api/orders";
+import { listFeaturedCategories } from "@/lib/api/categories";
+import { listChatsForBuyer } from "@/lib/api/intent-search";
+import { IntentSearchChat } from "@/components/buyer/intent-search-chat";
 
-// Genuinely dynamic (requireAccountType reads cookies) — not prerenderable, and
-// that's correct, not a gap to close. See design doc note on Cache Components.
-export const instant = false;
+export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
-/** Vertical slice step 4 (design doc §9): real identity, mocked order history. */
+/** The buyer's home is Intent Search, not a stats dashboard (design doc —
+ * no "Overview" nav item exists in the reference mockups). Always starts
+ * blank; a submitted message moves the URL to /buyer/chats/[id]. Category
+ * tiles and recent searches give the blank state real content instead of
+ * an empty prompt box. */
 export default async function BuyerDashboardPage() {
   await requireAccountType("buyer", "/buyer/dashboard");
-  const [user, orders] = await Promise.all([getCurrentUser(), listOrdersForCurrentUser()]);
+  const [categories, chats] = await Promise.all([listFeaturedCategories(), listChatsForBuyer()]);
 
   return (
-    <main>
-      <h1>Welcome{user ? `, ${user.displayName}` : ""}</h1>
-      <section>
-        <h2>Recent orders</h2>
-        <ul>
-          {orders.map((order) => (
-            <li key={order.id}>
-              {order.id} — {order.status} — {order.total} {order.currency}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </main>
+    <IntentSearchChat
+      initialChat={null}
+      initialProducts={{}}
+      categories={categories}
+      recentChats={chats.slice(0, 3)}
+    />
   );
 }

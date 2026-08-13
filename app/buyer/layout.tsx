@@ -1,10 +1,20 @@
+import { requireAccountType } from "@/lib/auth/dal";
+import { getCurrentUser } from "@/lib/api/auth";
+import { DashboardShell } from "@/components/buyer/dashboard-shell";
+
+export const instant = false; // requireAccountType reads cookies — genuinely dynamic
+
 /**
- * Buyer shell. NOT the security boundary — layouts don't re-run on every
- * client-side navigation within them (design doc §2.2 correction from Next's own
- * docs), so the authoritative check lives in each page.tsx via
- * requireAccountType("buyer", ...), not here. This layout is for shared UI only
- * (nav, cart icon, etc. — added when the UI is built).
+ * Buyer shell. The AccountType==="Customer" check here is a UX convenience
+ * (avoids flashing the full buyer nav before redirecting); it is NOT the
+ * security boundary — each page.tsx also calls requireAccountType("buyer",
+ * ...) directly, since layouts don't reliably re-run on every client-side
+ * navigation (design doc §2.2). Unlike vendor, there's no profile/
+ * verification gate — a buyer account is usable immediately after signup.
  */
-export default function BuyerLayout({ children }: { children: React.ReactNode }) {
-  return <>{children}</>;
+export default async function BuyerLayout({ children }: { children: React.ReactNode }) {
+  await requireAccountType("buyer", "/buyer/dashboard");
+  const user = await getCurrentUser();
+
+  return <DashboardShell buyerName={user?.displayName ?? "Buyer"}>{children}</DashboardShell>;
 }
