@@ -1,4 +1,5 @@
-import { TrendingUp, Wallet } from "lucide-react";
+import Link from "next/link";
+import { TrendingUp, Wallet, Printer } from "lucide-react";
 import { requireAccountType } from "@/lib/auth/dal";
 import { listTransactionsForVendor, getVendorOrderStats } from "@/lib/api/vendor-orders";
 import { VendorTableShell, VendorTableHead, VendorTableHeadCell, VendorTableRow, VendorTableCell, VendorTableEmpty } from "@/components/vendor/vendor-table";
@@ -44,9 +45,10 @@ export default async function VendorTransactionsPage() {
             <VendorTableHeadCell>Description</VendorTableHeadCell>
             <VendorTableHeadCell>Reference</VendorTableHeadCell>
             <VendorTableHeadCell>Amount</VendorTableHeadCell>
+            <VendorTableHeadCell>Receipt</VendorTableHeadCell>
           </VendorTableHead>
           <tbody>
-            {transactions.length === 0 && <VendorTableEmpty colSpan={5}>No transactions yet.</VendorTableEmpty>}
+            {transactions.length === 0 && <VendorTableEmpty colSpan={6}>No transactions yet.</VendorTableEmpty>}
             {transactions.map((tx) => (
               <VendorTableRow key={tx.id}>
                 <VendorTableCell className="text-text-muted">
@@ -57,6 +59,12 @@ export default async function VendorTransactionsPage() {
                 <VendorTableCell className="font-mono text-xs text-text-muted">{tx.reference}</VendorTableCell>
                 <VendorTableCell className={tx.amount >= 0 ? "font-medium text-verified" : "font-medium text-[#c0392b]"}>
                   {tx.amount >= 0 ? "+" : "−"}N{Math.abs(tx.amount).toLocaleString("en-NG")}
+                </VendorTableCell>
+                <VendorTableCell>
+                  <Link href={`/vendor/transactions/${tx.id}/receipt`} className="flex items-center gap-1.5 font-medium text-verified hover:text-ink">
+                    <Printer className="size-3.5" aria-hidden />
+                    Print
+                  </Link>
                 </VendorTableCell>
               </VendorTableRow>
             ))}

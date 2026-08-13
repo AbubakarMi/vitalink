@@ -104,8 +104,8 @@ export function DashboardShell({
         </div>
       </header>
 
-      <div className="flex flex-1 overflow-hidden">
-        <aside className="vendor-scroll hidden w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-line bg-white px-4 py-6 lg:flex">
+      <div className="flex flex-1 overflow-hidden print:block print:overflow-visible">
+        <aside className="vendor-scroll hidden w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-line bg-white px-4 py-6 lg:flex print:hidden">
           <SidebarNav pathname={pathname} />
         </aside>
 
@@ -137,7 +137,9 @@ export function DashboardShell({
           </div>
         )}
 
-        <main className="vendor-scroll min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8">{children}</main>
+        <main className="vendor-scroll min-w-0 flex-1 overflow-y-auto px-4 py-6 sm:px-8 sm:py-8 print:overflow-visible print:p-0">
+          {children}
+        </main>
       </div>
     </div>
   );

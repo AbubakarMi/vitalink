@@ -235,6 +235,16 @@
   }
 }
 
+/* Keeps background colors/borders on printed pages (e.g. the vendor
+ * transaction receipt, app/vendor/transactions/[id]/receipt) — browsers
+ * strip them by default when printing unless told otherwise. */
+@media print {
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}
+
 /* Thin, unobtrusive scrollbar for scrollable panes in the vendor dashboard
  * shell (components/vendor/dashboard-shell.tsx) — the OS default (thick,
  * high-contrast gray on Windows/Chrome) clashes with the rest of the design
