@@ -48,7 +48,11 @@ export default async function proxy(request: NextRequest) {
 
 function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
-  loginUrl.searchParams.set("redirect", request.nextUrl.pathname);
+  // pathname + search, not pathname alone — this fast path runs before any
+  // page-level redirect target is built, so dropping the query string here
+  // would silently lose it even when a page (e.g. /buyer/dashboard?q=) goes
+  // out of its way to preserve it through requireAccountType.
+  loginUrl.searchParams.set("redirect", request.nextUrl.pathname + request.nextUrl.search);
   return NextResponse.redirect(loginUrl);
 }
 

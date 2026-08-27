@@ -10,12 +10,12 @@ import { TrustedBrands } from "@/components/marketing/trusted-brands";
  * node 1707:7213 (design doc §9); redesigned around an "instrument panel"
  * direction — see components/marketing/vitals-waveform.tsx for the
  * signature motif — after CEO feedback that the fidelity-first pass read as
- * templated. Cache-components static shell: the hero and FeaturedProducts
- * are both backed by "use cache" mocked data (lib/api/products.ts) — see
- * design doc §1 on why nothing here is real category/brand data yet. No
- * cart-count or truly-personalized recommendations slot — design doc §8 is
- * explicit those should be omitted, not faked, since there's no real
- * per-user data source for either.
+ * templated. Cache-components static shell: FeaturedProducts and
+ * TrustedBrands are both async "use cache" sections (lib/api/products.ts,
+ * lib/api/brands.ts), each in their own Suspense boundary. No cart-count or
+ * truly-personalized recommendations slot — design doc §8 is explicit those
+ * should be omitted, not faked, since there's no real per-user data source
+ * for either.
  */
 export default function LandingPage() {
   return (
@@ -26,7 +26,9 @@ export default function LandingPage() {
       </Suspense>
       <HowItWorks />
       <Testimonials />
-      <TrustedBrands />
+      <Suspense fallback={<div className="mx-auto h-96 max-w-5xl px-10 py-12" />}>
+        <TrustedBrands />
+      </Suspense>
     </main>
   );
 }

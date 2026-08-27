@@ -193,6 +193,11 @@ const CATEGORY_TEMPLATES: CategoryTemplate[] = [
   },
 ];
 
+/** Real brand names actually assigned to catalog products above — used to
+ * populate the Brand filter with options that are guaranteed to match at
+ * least one product, rather than a fabricated or aspirational brand list. */
+export const CATALOG_BRANDS = Array.from(new Set(CATEGORY_TEMPLATES.flatMap((template) => template.brands))).sort();
+
 const MODEL_LETTERS = ["X", "Pro", "V", "Elite", "Compact", "Plus", "S", "T"];
 
 function slugify(text: string): string {

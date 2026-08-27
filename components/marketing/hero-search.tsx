@@ -1,5 +1,5 @@
-import Image from "next/image";
 import { VitalsWaveform } from "@/components/marketing/vitals-waveform";
+import { SearchBar } from "@/components/marketing/search-bar";
 
 const QUICK_CATEGORIES = [
   { label: "Medical Equipment", slug: "medical-equipment" },
@@ -12,15 +12,16 @@ const QUICK_CATEGORIES = [
  * Hero — landing-page redesign (CEO "world class" pass, superseding pixel
  * fidelity to Figma EZER-KEY node 1707:7213). The source design's "Search by
  * intent/budget/specification" pills described an AI-search concept that
- * isn't built; those are replaced here with real category links instead of
- * decorative text implying a capability we don't have.
+ * wasn't built at the time; components/buyer/intent-search-chat.tsx
+ * ("Vitalink Intelligence") now is, so SearchBar's "AI search" mode here
+ * routes to it for real instead of the earlier placeholder category links.
  *
  * The vitals trace behind the headline is the page's signature — the same
  * kind of readout our own hero product (a patient monitor) displays.
  */
 export function HeroSearch() {
   return (
-    <section className="relative overflow-hidden bg-ink px-4 pt-12 pb-16 text-white sm:px-6 sm:pt-16 sm:pb-20 lg:px-10 lg:pt-16 lg:pb-24">
+    <section className="relative bg-ink px-4 pt-12 pb-16 text-white sm:px-6 sm:pt-16 sm:pb-20 lg:px-10 lg:pt-16 lg:pb-24">
       <VitalsWaveform
         cycles={6}
         strokeWidth={1.5}
@@ -41,23 +42,7 @@ export function HeroSearch() {
           vendors — built for procurement teams who can&apos;t afford to guess.
         </p>
 
-        <form action="/products" className="mt-10 flex flex-col gap-3 sm:flex-row">
-          <div className="flex flex-1 items-center gap-3 rounded-md border border-white/15 bg-white/[0.06] px-5 py-4">
-            <Image src="/marketing/search-icon.svg" alt="" width={20} height={20} className="opacity-70 invert" aria-hidden />
-            <input
-              type="search"
-              name="search"
-              placeholder="e.g. multi-parameter patient monitor, NAFDAC-approved malaria RDT kits…"
-              className="flex-1 bg-transparent font-mono text-sm text-white outline-none placeholder:text-white/35"
-            />
-          </div>
-          <button
-            type="submit"
-            className="rounded-md bg-signal px-8 py-4 text-sm font-semibold text-ink transition-colors hover:bg-signal/85"
-          >
-            Search catalog
-          </button>
-        </form>
+        <SearchBar variant="hero" />
 
         <div className="mt-6 flex flex-wrap gap-2">
           {QUICK_CATEGORIES.map((category) => (

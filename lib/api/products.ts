@@ -74,6 +74,12 @@ export interface ListProductsParams {
   categorySlug?: string;
   search?: string;
   sort?: SortOption;
+  /** Comma-separated brand names (matches ProductFilters' Brand dropdown, a
+   * single query param so it round-trips through Pagination/ViewToggle's
+   * plain string searchParams without special-casing an array param). */
+  brand?: string;
+  minPrice?: string | number;
+  maxPrice?: string | number;
   [key: string]: string | number | boolean | undefined;
 }
 
@@ -110,6 +116,15 @@ export async function listProductsPaged(
   return { items: all.slice(start, start + pageSize), totalCount, page, pageSize, totalPages };
 }
 
+/** Catalog-wide price bounds — sets the min/max on the sidebar's Price range
+ * slider (components/marketplace/price-filter.tsx). Ignores any active
+ * filters so the slider's own range never shrinks based on itself. */
+export async function getPriceBounds(): Promise<{ min: number; max: number }> {
+  "use cache";
+  const prices = mockProducts.map((product) => product.price);
+  return { min: Math.min(...prices), max: Math.max(...prices) };
+}
+
 /** Bulk lookup for rendering a fixed set of ids (Intent Search recommendation
  * cards, cart line items) — preserves the input order, silently drops ids
  * that no longer resolve rather than throwing. */
@@ -132,9 +147,18 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
 }
 
 function filterMockProducts(params: ListProductsParams) {
+  const wantedBrands = params.brand
+    ? String(params.brand).split(",").map((b) => b.trim()).filter(Boolean)
+    : [];
+  const minPrice = params.minPrice !== undefined && params.minPrice !== "" ? Number(params.minPrice) : undefined;
+  const maxPrice = params.maxPrice !== undefined && params.maxPrice !== "" ? Number(params.maxPrice) : undefined;
+
   const filtered = mockProducts.filter((product) => {
     if (params.categorySlug && product.categorySlug !== params.categorySlug) return false;
     if (params.search && !product.name.toLowerCase().includes(params.search.toLowerCase())) return false;
+    if (wantedBrands.length > 0 && !wantedBrands.includes(product.brand ?? "")) return false;
+    if (minPrice !== undefined && product.price < minPrice) return false;
+    if (maxPrice !== undefined && product.price > maxPrice) return false;
     return true;
   });
 

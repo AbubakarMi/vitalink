@@ -1,11 +1,14 @@
-import Image from "next/image";
 import Link from "next/link";
+import { LayoutGrid, List } from "lucide-react";
 
 /**
  * Real grid/list view toggle via ?view= query param. Figma's button order
  * (node 1340:444) is grid-icon-first with the teal "active" background, then
- * list-icon second with gray — grid is the default. (An earlier pass had the
- * two icon files swapped between the buttons — fixed here.)
+ * list-icon second with gray — grid is the default. Uses lucide (like every
+ * other icon in this toolbar) instead of the old white-stroke SVGs, which
+ * were invisible in both states: "invert" on the dark active background
+ * turned white into black-on-dark, and the inactive white background got no
+ * invert at all, leaving a white icon on white. currentColor sidesteps that.
  */
 export function ViewToggle({ activeView, search }: { activeView: "grid" | "list"; search: string }) {
   function hrefFor(view: "grid" | "list") {
@@ -25,31 +28,17 @@ export function ViewToggle({ activeView, search }: { activeView: "grid" | "list"
         href={hrefFor("grid")}
         aria-label="Grid view"
         aria-current={activeView === "grid"}
-        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "grid" ? "border-ink bg-ink" : "border-line bg-white"}`}
+        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "grid" ? "border-verified bg-verified text-white" : "border-line bg-white text-ink-soft/50"}`}
       >
-        <Image
-          src="/marketplace/grid-view-icon.svg"
-          alt=""
-          width={20}
-          height={20}
-          className={activeView === "grid" ? "invert" : "opacity-50"}
-          aria-hidden
-        />
+        <LayoutGrid className="size-5" aria-hidden />
       </Link>
       <Link
         href={hrefFor("list")}
         aria-label="List view"
         aria-current={activeView === "list"}
-        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "list" ? "border-ink bg-ink" : "border-line bg-white"}`}
+        className={`flex size-11 items-center justify-center rounded-lg border ${activeView === "list" ? "border-verified bg-verified text-white" : "border-line bg-white text-ink-soft/50"}`}
       >
-        <Image
-          src="/marketplace/list-view-icon.svg"
-          alt=""
-          width={20}
-          height={20}
-          className={activeView === "list" ? "invert" : "opacity-50"}
-          aria-hidden
-        />
+        <List className="size-5" aria-hidden />
       </Link>
     </div>
   );

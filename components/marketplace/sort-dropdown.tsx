@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { ChevronDown } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { SORT_OPTIONS, type SortOption } from "@/lib/api/product-sort";
 
@@ -35,7 +35,7 @@ export function SortDropdown({ activeSort }: { activeSort?: SortOption }) {
           </option>
         ))}
       </select>
-      <Image src="/marketplace/sort-chevron.svg" alt="" width={16} height={16} aria-hidden />
+      <ChevronDown className="size-4 text-ink-soft" aria-hidden />
     </div>
   );
 }

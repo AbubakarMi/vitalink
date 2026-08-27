@@ -1,4 +1,6 @@
+import { Scale } from "lucide-react";
 import { requireAccountType } from "@/lib/auth/dal";
+import { ComingSoon } from "@/components/admin/coming-soon";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -6,9 +8,10 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
 export default async function AdminDisputesPage() {
   await requireAccountType("admin", "/admin/disputes");
   return (
-    <main>
-      <h1>Disputes</h1>
-      <p>No backend concept of disputes yet — placeholder.</p>
-    </main>
+    <ComingSoon
+      icon={Scale}
+      title="Disputes"
+      description="There's no backend concept of disputes yet — this will list buyer/vendor disputes once that exists."
+    />
   );
 }

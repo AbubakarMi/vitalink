@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Minus, Plus, Check } from "lucide-react";
+import { Minus, Plus, Check, ShoppingCart } from "lucide-react";
 import { useCart } from "@/lib/cart/store";
 import type { Product } from "@/lib/api/products";
 
@@ -61,7 +61,7 @@ export function QuantityAddToCart({ product }: { product: Product }) {
         type="button"
         onClick={handleAddToCart}
         disabled={!product.inStock}
-        className="flex items-center gap-2 rounded-[5px] border-2 border-verified bg-verified px-6 py-3 font-bold text-white transition-colors hover:bg-brand-primary-hover disabled:cursor-not-allowed disabled:opacity-50"
+        className="flex items-center gap-2 rounded-[5px] border-2 border-verified bg-verified px-6 py-3 font-bold text-white transition-colors hover:border-verified-hover hover:bg-verified-hover disabled:cursor-not-allowed disabled:opacity-50"
       >
         {justAdded ? (
           <>
@@ -69,7 +69,10 @@ export function QuantityAddToCart({ product }: { product: Product }) {
             Added
           </>
         ) : product.inStock ? (
-          "Add to Cart"
+          <>
+            <ShoppingCart className="size-5" aria-hidden />
+            Add to Cart
+          </>
         ) : (
           "Out of Stock"
         )}

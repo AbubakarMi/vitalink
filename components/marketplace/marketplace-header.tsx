@@ -3,6 +3,7 @@ import Link from "next/link";
 import { User } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button";
 import { CartIcon } from "@/components/marketplace/cart-icon";
+import { SearchBar } from "@/components/marketing/search-bar";
 import { verifySession } from "@/lib/auth/dal";
 
 const ACCOUNT_TYPE_LABEL: Record<string, string> = {
@@ -38,13 +39,17 @@ function initials(name: string): string {
  */
 export function MarketplaceHeader() {
   return (
-    <header className="border-b border-line bg-cream px-4 py-4 sm:px-6 lg:px-10">
-      <div className="mx-auto flex w-full max-w-6xl items-center gap-4 sm:gap-8">
+    <header className="sticky top-0 z-40 border-b border-line bg-cream px-4 py-4 sm:px-6 lg:px-10">
+      <div className="mx-auto grid w-full max-w-6xl grid-cols-[auto_1fr_auto] items-center gap-4 sm:gap-8">
         <Link href="/" className="font-alata text-2xl tracking-tight text-ink">
           VITALINK
         </Link>
 
-        <div className="ml-auto flex items-center gap-6">
+        <div className="hidden justify-center lg:flex">
+          <SearchBar variant="nav" />
+        </div>
+
+        <div className="flex items-center gap-6 justify-self-end">
           <div className="flex items-center gap-2.5">
             <span className="text-xs font-medium tracking-wide text-warm-muted uppercase">Cart</span>
             <CartIcon />

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Mic, ArrowUp, Sparkles, SquarePen, Boxes, Microscope, TestTube, FlaskConical, ChevronRight, ListFilter, Wallet, BadgeCheck } from "lucide-react";
@@ -68,11 +68,15 @@ export function IntentSearchChat({
   initialProducts,
   categories = [],
   recentChats = [],
+  initialQuery,
 }: {
   initialChat: ChatSession | null;
   initialProducts: Record<string, Product>;
   categories?: Category[];
   recentChats?: RecentChatSummary[];
+  /** A query handed in via ?q= (the landing page/nav SearchBar's "AI search"
+   * mode) — auto-submitted once on mount rather than left sitting in the box. */
+  initialQuery?: string;
 }) {
   const router = useRouter();
   const [chat, setChat] = useState<ChatSession | null>(initialChat);
@@ -116,6 +120,15 @@ export function IntentSearchChat({
       }
     });
   }
+
+  const autoSubmittedRef = useRef(false);
+  useEffect(() => {
+    if (initialQuery && !chat && !autoSubmittedRef.current) {
+      autoSubmittedRef.current = true;
+      submit(initialQuery);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialQuery]);
 
   if (!chat) {
     return (

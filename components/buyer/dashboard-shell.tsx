@@ -7,6 +7,7 @@ import { Bell, SquarePen, MessageSquare, History, Store, Settings as SettingsIco
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart/store";
 import { AccountMenu } from "@/components/ui/account-menu";
+import { SearchBar } from "@/components/marketing/search-bar";
 
 /**
  * Persistent buyer dashboard chrome (sidebar + header) — wraps every page
@@ -49,7 +50,7 @@ export function DashboardShell({
   return (
     <div className="flex h-dvh flex-col bg-cream">
       <div className="h-[3px] shrink-0 bg-signal" />
-      <header className="flex shrink-0 items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10">
+      <header className="grid shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -63,7 +64,12 @@ export function DashboardShell({
             VITALINK
           </Link>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+
+        <div className="hidden justify-center lg:flex">
+          <SearchBar variant="nav" />
+        </div>
+
+        <div className="flex items-center gap-2 justify-self-end sm:gap-3">
           <button
             type="button"
             aria-label="Notifications"

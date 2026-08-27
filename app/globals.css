@@ -14,6 +14,7 @@
   --color-brand-primary: #062c24;
   --color-brand-primary-hover: #0a3d32;
   --color-verified: #006b5f;
+  --color-verified-hover: #00554a;
   --color-surface: #ffffff;
   --color-surface-muted: #efefef;
   --color-text-muted: #6b7280;
@@ -62,6 +63,7 @@
   --color-brand-primary: #71f8e4;
   --color-brand-primary-hover: #089e7e;
   --color-verified: #71f8e4;
+  --color-verified-hover: #4fd9c6;
   --color-surface: #0d1c32;
   --color-surface-muted: #191c1d;
   --color-text-muted: #c5c6cd;
@@ -269,6 +271,17 @@
   background-color: var(--color-ink-muted);
 }
 
+/* Scrollbar hidden but still scrollable — for horizontally-scrolling card
+ * rows (components/marketing/product-carousel.tsx) where a visible OS
+ * scrollbar would clash with the nav-arrow affordance already doing that job. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
 @keyframes live-pulse {
   0%,
   100% {
@@ -279,4 +292,73 @@
     opacity: 0.4;
     transform: scale(0.85);
   }
+}
+
+/* Continuous horizontal scroll for the Trusted Brands logo strip
+ * (components/marketing/trusted-brands.tsx) — the track renders the brand
+ * list twice back-to-back and scrolls exactly one copy's width, so the loop
+ * point is seamless. Paused on hover so a visitor can actually read/click a
+ * logo, and disabled outright under reduced-motion. */
+@keyframes brand-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+.animate-brand-marquee {
+  animation: brand-marquee 36s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animate-brand-marquee {
+    animation: none;
+  }
+}
+
+/* Dual-thumb price range slider (components/marketplace/price-filter.tsx) —
+ * two overlaid native <input type="range"> elements sharing one track; each
+ * input's own track is made invisible/transparent (only its thumb is
+ * interactive) and a separate .price-slider-track/-fill pair underneath
+ * draws the visible track + selected-range fill. */
+.price-slider input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.price-slider input[type="range"]::-webkit-slider-runnable-track {
+  -webkit-appearance: none;
+  background: transparent;
+}
+.price-slider input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  margin-top: 0;
+  border-radius: 9999px;
+  background: var(--color-verified);
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
+}
+.price-slider input[type="range"]::-moz-range-track {
+  background: transparent;
+  border: none;
+}
+.price-slider input[type="range"]::-moz-range-thumb {
+  pointer-events: auto;
+  width: 16px;
+  height: 16px;
+  border-radius: 9999px;
+  background: var(--color-verified);
+  border: 2px solid var(--color-surface);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  cursor: pointer;
 }

@@ -1,8 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import Image from "next/image";
-import { Check } from "lucide-react";
+import { Check, ShoppingCart } from "lucide-react";
 import { useCart } from "@/lib/cart/store";
 import type { Product } from "@/lib/api/products";
 
@@ -30,12 +29,12 @@ export function AddToCartButton({ product }: { product: Product }) {
       type="button"
       onClick={handleClick}
       aria-label={`Add ${product.name} to cart`}
-      className="flex items-center justify-center rounded-[5px] border-2 border-verified bg-verified px-5 py-2 transition-colors hover:bg-brand-primary-hover"
+      className="flex items-center justify-center rounded-[5px] border-2 border-verified bg-verified px-5 py-2 transition-colors hover:border-verified-hover hover:bg-verified-hover"
     >
       {justAdded ? (
         <Check className="size-5 text-white" aria-hidden />
       ) : (
-        <Image src="/marketplace/add-to-cart-icon.svg" alt="" width={20} height={20} aria-hidden />
+        <ShoppingCart className="size-5 text-white" aria-hidden />
       )}
     </button>
   );
