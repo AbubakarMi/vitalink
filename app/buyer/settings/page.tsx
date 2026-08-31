@@ -1,7 +1,9 @@
 import { requireAccountType } from "@/lib/auth/dal";
 import { getCurrentUser } from "@/lib/api/auth";
 import { getDeliveryAddress } from "@/lib/api/buyer-profile";
+import { getMfaPreference } from "@/lib/api/security";
 import { DeliveryAddressForm } from "@/components/buyer/delivery-address-form";
+import { MfaSettings } from "@/components/buyer/mfa-settings";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -17,7 +19,7 @@ function splitName(displayName: string): { first: string; last: string } {
  * is actually editable. */
 export default async function BuyerSettingsPage() {
   await requireAccountType("buyer", "/buyer/settings");
-  const [user, address] = await Promise.all([getCurrentUser(), getDeliveryAddress()]);
+  const [user, address, mfaPreference] = await Promise.all([getCurrentUser(), getDeliveryAddress(), getMfaPreference()]);
   const { first, last } = splitName(user?.displayName ?? "");
 
   return (
@@ -49,6 +51,10 @@ export default async function BuyerSettingsPage() {
         <p className="font-mono text-[11px] font-medium tracking-[0.1em] text-text-muted uppercase">Delivery Address</p>
         <p className="mt-1 mb-4 text-sm text-text-muted">Used to prefill checkout.</p>
         <DeliveryAddressForm initialAddress={address} />
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
+        <MfaSettings initialMethod={mfaPreference.method} />
       </div>
     </div>
   );

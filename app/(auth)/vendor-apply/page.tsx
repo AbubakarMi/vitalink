@@ -1,5 +1,6 @@
 import { requireAccountType } from "@/lib/auth/dal";
 import { getVendorProfile } from "@/lib/api/vendor-profile";
+import { listDocumentRequirements } from "@/lib/api/admin/document-requirements";
 import { VendorApplyWizard } from "./vendor-apply-wizard";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
@@ -15,7 +16,7 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  */
 export default async function VendorApplyPage() {
   await requireAccountType("vendor", "/vendor-apply");
-  const profile = await getVendorProfile();
+  const [profile, documentRequirements] = await Promise.all([getVendorProfile(), listDocumentRequirements()]);
 
-  return <VendorApplyWizard initialProfile={profile} />;
+  return <VendorApplyWizard initialProfile={profile} documentRequirements={documentRequirements} />;
 }

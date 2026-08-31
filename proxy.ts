@@ -1,6 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { SESSION_COOKIES, verifyAccessToken } from "@/lib/auth/session";
-import { PATH_PREFIX_ACCOUNT_TYPE, dashboardPathForAccountType, matchProtectedPrefix } from "@/lib/auth/route-groups";
+import {
+  PATH_PREFIX_ACCOUNT_TYPE,
+  dashboardPathForAccountType,
+  matchProtectedPrefix,
+  isBuyerPathOpenToVendors,
+} from "@/lib/auth/route-groups";
 
 /**
  * Fast, optimistic role gate — cookie-only, no network/DB calls (Next's own
@@ -39,7 +44,11 @@ export default async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (claims.accountType !== PATH_PREFIX_ACCOUNT_TYPE[prefix]) {
+  const allowed =
+    claims.accountType === PATH_PREFIX_ACCOUNT_TYPE[prefix] ||
+    (prefix === "buyer" && claims.accountType === "Vendor" && isBuyerPathOpenToVendors(pathname));
+
+  if (!allowed) {
     return NextResponse.redirect(new URL(dashboardPathForAccountType(claims.accountType), request.url));
   }
 

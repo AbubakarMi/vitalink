@@ -54,9 +54,9 @@ export function SiteFooter() {
         <FooterColumn
           title="SUPPORT"
           links={[
-            { label: "Help Center", href: "#" },
-            { label: "Request a Quote", href: "#" },
-            { label: "Contact Us", href: "#" },
+            { label: "Help Center", href: "/help-center" },
+            { label: "Request a Quote", href: "/request-a-quote" },
+            { label: "Contact Us", href: "/contact-us" },
           ]}
         />
 

@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Landmark } from "lucide-react";
 import { requireAccountType } from "@/lib/auth/dal";
+import { getMfaPreference } from "@/lib/api/security";
+import { MfaSettings } from "@/components/vendor/mfa-settings";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -10,6 +12,7 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  * entry in favor of this page. */
 export default async function VendorSettingsPage() {
   await requireAccountType("vendor", "/vendor/settings");
+  const mfaPreference = await getMfaPreference();
   return (
     <div className="mx-auto max-w-2xl py-16">
       <h1 className="text-2xl font-semibold text-ink">Settings</h1>
@@ -27,6 +30,10 @@ export default async function VendorSettingsPage() {
           <span className="block text-sm text-text-muted">Manage your settlement bank accounts</span>
         </span>
       </Link>
+
+      <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
+        <MfaSettings initialMethod={mfaPreference.method} />
+      </div>
     </div>
   );
 }

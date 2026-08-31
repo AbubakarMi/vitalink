@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Search, Sparkles, ArrowRight } from "lucide-react";
+import { Search, Sparkles, ArrowRight, Clock, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { searchSuggestionsAction, type SearchSuggestion } from "@/components/marketing/actions";
+import { getRecentSearches, addRecentSearch, removeRecentSearch, clearRecentSearches } from "@/lib/search/recent-searches";
 
 const AI_PROMPTS = [
   "Multi-parameter patient monitors under N300,000",
@@ -38,6 +39,13 @@ export function SearchBar({ variant = "nav", className }: { variant?: "nav" | "h
   const [open, setOpen] = useState(false);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [suggestionsLoading, setSuggestionsLoading] = useState(false);
+  // Lazy initializer (not an effect): localStorage is unavailable during SSR
+  // (getRecentSearches() catches that and returns []), but this value never
+  // affects the initial render's DOM — the dropdown starts closed — so
+  // reading the real client-side value here doesn't risk a hydration
+  // mismatch, and avoids a setState-in-effect cascade for something that's
+  // just an initial value, not a subscription to an external store.
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => getRecentSearches());
   const containerRef = useRef<HTMLDivElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
@@ -93,24 +101,80 @@ export function SearchBar({ variant = "nav", className }: { variant?: "nav" | "h
     if (mode === "ai") {
       router.push(`/buyer/dashboard?q=${encodeURIComponent(trimmed)}`);
     } else {
-      router.push(`/products?search=${encodeURIComponent(trimmed)}`);
+      addRecentSearch(trimmed);
+      setRecentSearches(getRecentSearches());
+      router.push(`/search?q=${encodeURIComponent(trimmed)}`);
     }
+  }
+
+  function runRecentSearch(value: string) {
+    setQuery(value);
+    submit(value);
+  }
+
+  function deleteRecentSearch(e: React.MouseEvent, value: string) {
+    e.preventDefault();
+    e.stopPropagation();
+    removeRecentSearch(value);
+    setRecentSearches(getRecentSearches());
   }
 
   function switchMode(next: SearchMode) {
     setMode(next);
     setSuggestions([]);
-    setOpen(next === "ai" || query.trim().length >= 2);
+    const trimmed = query.trim();
+    setOpen(next === "ai" || trimmed.length >= 2 || (next === "catalog" && trimmed.length === 0 && recentSearches.length > 0));
   }
 
   const isHero = variant === "hero";
   const trimmedQuery = query.trim();
-  const showDropdown = open && (mode === "ai" ? true : trimmedQuery.length >= 2);
+  const showRecent = mode === "catalog" && trimmedQuery.length === 0 && recentSearches.length > 0;
+  const showDropdown = open && (mode === "ai" ? true : trimmedQuery.length >= 2 || showRecent);
 
   const dropdown = showDropdown && (
     <div className="absolute top-full right-0 left-0 z-30 mt-2 overflow-hidden rounded-xl border border-line bg-white shadow-lg">
       {mode === "catalog" ? (
-        suggestionsLoading ? (
+        showRecent ? (
+          <div className="py-1">
+            <p className="flex items-center justify-between px-4 pt-1.5 pb-1">
+              <span className="text-[10px] font-medium tracking-[0.1em] text-text-muted uppercase">Recent searches</span>
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  clearRecentSearches();
+                  setRecentSearches([]);
+                }}
+                className="text-xs text-verified hover:underline"
+              >
+                Clear
+              </button>
+            </p>
+            <ul>
+              {recentSearches.map((q) => (
+                <li key={q}>
+                  <button
+                    type="button"
+                    onClick={() => runRecentSearch(q)}
+                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-ink-soft transition-colors hover:bg-mint/60"
+                  >
+                    <Clock className="size-3.5 shrink-0 text-text-muted" aria-hidden />
+                    <span className="flex-1 truncate">{q}</span>
+                    <span
+                      role="button"
+                      tabIndex={0}
+                      onClick={(e) => deleteRecentSearch(e, q)}
+                      aria-label={`Remove "${q}" from recent searches`}
+                      className="shrink-0 rounded p-0.5 text-text-muted hover:bg-white hover:text-ink"
+                    >
+                      <X className="size-3.5" aria-hidden />
+                    </span>
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : suggestionsLoading ? (
           <p className="px-4 py-3 text-sm text-text-muted">Searching…</p>
         ) : suggestions.length > 0 ? (
           <ul>
@@ -191,7 +255,7 @@ export function SearchBar({ variant = "nav", className }: { variant?: "nav" | "h
             type="search"
             value={query}
             onChange={(e) => handleQueryChange(e.target.value)}
-            onFocus={() => setOpen(mode === "ai" || trimmedQuery.length >= 2)}
+            onFocus={() => setOpen(mode === "ai" || trimmedQuery.length >= 2 || showRecent)}
             placeholder={
               mode === "ai"
                 ? isHero

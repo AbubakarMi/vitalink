@@ -13,7 +13,7 @@ export interface OnboardingStepInfo {
 }
 
 export const VENDOR_ONBOARDING_STEPS: OnboardingStepInfo[] = [
-  { key: "identity", number: 1, label: "Identity & MFA", description: "Legal name and security setup" },
+  { key: "identity", number: 1, label: "Identity", description: "Legal name and account setup" },
   { key: "business", number: 2, label: "Business Profile", description: "Tax IDs and entity verification" },
   { key: "compliance", number: 3, label: "Compliance & Verification", description: "Documentation and certification" },
   { key: "payout", number: 4, label: "Payout Logistics", description: "Banking and settlement preferences" },

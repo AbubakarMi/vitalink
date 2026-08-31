@@ -2,8 +2,9 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
-import { User, Mail, Phone, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
 import type { AccountType } from "@/lib/api/auth";
+import { PhoneNumberField } from "@/components/ui/phone-input-field";
 import { registerAction, type RegisterState } from "./actions";
 
 const initialState: RegisterState = {};
@@ -49,7 +50,14 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
           </label>
           <div className="relative mt-1.5">
             <User className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-text-muted" aria-hidden />
-            <input id="firstName" name="firstName" autoComplete="given-name" required className={fieldClass} />
+            <input
+              id="firstName"
+              name="firstName"
+              autoComplete="given-name"
+              placeholder="e.g. Chioma"
+              required
+              className={fieldClass}
+            />
           </div>
         </div>
         <div>
@@ -58,7 +66,14 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
           </label>
           <div className="relative mt-1.5">
             <User className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-text-muted" aria-hidden />
-            <input id="lastName" name="lastName" autoComplete="family-name" required className={fieldClass} />
+            <input
+              id="lastName"
+              name="lastName"
+              autoComplete="family-name"
+              placeholder="e.g. Okor"
+              required
+              className={fieldClass}
+            />
           </div>
         </div>
       </div>
@@ -81,15 +96,7 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
         </div>
       </div>
 
-      <div>
-        <label htmlFor="phone" className="text-sm font-medium text-ink-soft">
-          Phone <span className="text-text-muted">(optional)</span>
-        </label>
-        <div className="relative mt-1.5">
-          <Phone className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-text-muted" aria-hidden />
-          <input id="phone" name="phone" type="tel" autoComplete="tel" className={fieldClass} placeholder="+234" />
-        </div>
-      </div>
+      <PhoneNumberField id="phone" name="phone" label="Phone (optional)" />
 
       <div>
         <label htmlFor="password" className="text-sm font-medium text-ink-soft">

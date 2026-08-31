@@ -11,25 +11,21 @@ const initialState: IdentityState = {};
 const fieldClass =
   "w-full rounded-xl border border-line bg-white py-3 pr-11 pl-11 text-sm text-ink shadow-sm outline-none transition-shadow focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
 
-const MFA_METHODS = [
-  { value: "email", label: "Email", description: "Secure code sent to your email address" },
-  { value: "authenticator", label: "Authenticator", description: "Google, Microsoft, or Authy" },
-] as const;
-
 /**
- * Step 1 of the vendor onboarding wizard ("Identity & MFA" — Figma EZER-KEY
- * node 1250:31). Registers the account and signs the vendor in immediately
+ * Step 1 of the vendor onboarding wizard ("Identity" — Figma EZER-KEY node
+ * 1250:31). Registers the account and signs the vendor in immediately
  * (identityAction calls register() then login()), then hands off to the
  * parent VendorApplyWizard via onSuccess so steps 2-4 continue in the same
- * client flow, matching the design's single continuous wizard. The MFA
- * method choice is captured but not yet wired to a real enrollment
- * endpoint — no such endpoint exists in lib/api/auth.ts yet — so it's a real,
- * saved preference in form state, not (yet) an active security setting.
+ * client flow, matching the design's single continuous wizard.
+ *
+ * MFA method choice used to live here, but enrolling in MFA isn't part of
+ * creating an account — it now lives with the rest of a signed-in account's
+ * security preferences at /buyer/settings and /vendor/settings (see
+ * components/buyer/mfa-settings.tsx and components/vendor/mfa-settings.tsx).
  */
 export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
   const [state, formAction, pending] = useActionState(identityAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
-  const [mfaMethod, setMfaMethod] = useState<(typeof MFA_METHODS)[number]["value"]>("email");
 
   useEffect(() => {
     if (state.success) {
@@ -41,11 +37,15 @@ export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
     <form action={formAction} className="space-y-6">
       <input type="hidden" name="accountType" value="Vendor" />
 
+      <Link href="/register" className="inline-block text-xs text-text-muted hover:text-ink">
+        ← Not a vendor? Change
+      </Link>
+
       <div>
         <span className="flex size-[52px] items-center justify-center rounded-xl bg-ink text-white">
           <Fingerprint className="size-6" aria-hidden />
         </span>
-        <h2 className="mt-4 text-2xl font-semibold text-ink">Identity &amp; MFA</h2>
+        <h2 className="mt-4 text-2xl font-semibold text-ink">Identity</h2>
         <p className="mt-2 max-w-lg text-sm text-text-muted">
           Please provide your legal details and secure your account. This information ensures clinical compliance
           and secure access.
@@ -57,13 +57,27 @@ export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
           <label htmlFor="firstName" className="text-sm font-medium text-ink-soft">
             Legal First Name
           </label>
-          <input id="firstName" name="firstName" autoComplete="given-name" required className={cn(fieldClass, "pl-4")} />
+          <input
+            id="firstName"
+            name="firstName"
+            autoComplete="given-name"
+            placeholder="e.g. Nnamdi"
+            required
+            className={cn(fieldClass, "pl-4")}
+          />
         </div>
         <div>
           <label htmlFor="lastName" className="text-sm font-medium text-ink-soft">
             Legal Last Name
           </label>
-          <input id="lastName" name="lastName" autoComplete="family-name" required className={cn(fieldClass, "pl-4")} />
+          <input
+            id="lastName"
+            name="lastName"
+            autoComplete="family-name"
+            placeholder="e.g. Ejeofor"
+            required
+            className={cn(fieldClass, "pl-4")}
+          />
         </div>
       </div>
 
@@ -73,7 +87,15 @@ export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
         </label>
         <div className="relative mt-1.5">
           <Mail className="pointer-events-none absolute top-1/2 left-4 size-4 -translate-y-1/2 text-text-muted" aria-hidden />
-          <input id="email" name="email" type="email" autoComplete="email" required className={fieldClass} />
+          <input
+            id="email"
+            name="email"
+            type="email"
+            autoComplete="email"
+            placeholder="you@business.com"
+            required
+            className={fieldClass}
+          />
         </div>
       </div>
 
@@ -89,6 +111,7 @@ export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
               name="password"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
+              placeholder="At least 8 characters"
               required
               minLength={8}
               className={fieldClass}
@@ -114,48 +137,12 @@ export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
               name="confirmPassword"
               type={showPassword ? "text" : "password"}
               autoComplete="new-password"
+              placeholder="Re-enter your password"
               required
               minLength={8}
               className={cn(fieldClass, "pr-4")}
             />
           </div>
-        </div>
-      </div>
-
-      <div>
-        <p className="font-semibold text-ink">Multi-Factor Authentication (MFA)</p>
-        <p className="mt-1 text-sm text-text-muted">Select your preferred authentication method</p>
-        <div className="mt-3 space-y-2">
-          {MFA_METHODS.map((method) => (
-            <label
-              key={method.value}
-              className={cn(
-                "flex cursor-pointer items-center gap-3 rounded-xl border p-4 transition-colors",
-                mfaMethod === method.value ? "border-ink bg-mint" : "border-line bg-white",
-              )}
-            >
-              <input
-                type="radio"
-                name="mfaMethod"
-                value={method.value}
-                checked={mfaMethod === method.value}
-                onChange={() => setMfaMethod(method.value)}
-                className="sr-only"
-              />
-              <span
-                className={cn(
-                  "flex size-5 shrink-0 items-center justify-center rounded-full border-2",
-                  mfaMethod === method.value ? "border-ink" : "border-line",
-                )}
-              >
-                {mfaMethod === method.value && <span className="size-2.5 rounded-full bg-ink" />}
-              </span>
-              <span>
-                <span className="block font-medium text-ink">{method.label}</span>
-                <span className="block text-sm text-text-muted">{method.description}</span>
-              </span>
-            </label>
-          ))}
         </div>
       </div>
 

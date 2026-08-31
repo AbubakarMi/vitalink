@@ -2,16 +2,27 @@
 
 import { useState, useTransition } from "react";
 import Link from "next/link";
-import { Building2, ShieldCheck, Landmark, CheckCheck, ChevronDown } from "lucide-react";
+import { Building2, ShieldCheck, Landmark, CheckCheck, ChevronDown, ChevronLeft } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OnboardingShell } from "@/components/vendor-onboarding/onboarding-shell";
+import { PhoneNumberField } from "@/components/ui/phone-input-field";
+import { StateSearchField } from "@/components/ui/state-search-field";
 import { NIGERIAN_BANKS } from "@/lib/vendor-onboarding/banks";
-import type { VendorProfile } from "@/lib/api/vendor-profile";
+import type { VendorProfile, DocumentType } from "@/lib/api/vendor-profile";
+import type { DocumentRequirement } from "@/lib/api/admin/document-requirements";
 import { DocumentUploadField } from "./document-upload-field";
 import { VendorIdentityForm } from "./vendor-identity-form";
 import { saveBusinessProfileAction, savePayoutAction } from "./actions";
 
 type WizardStep = "identity" | "business" | "compliance" | "payout" | "success";
+
+const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
+  IsoCertification: "ISO 13485",
+  BusinessRegistration: "Business Registration",
+  FdaRegistration: "FDA",
+  NafdacRegistration: "NAFDAC",
+  Other: "Other",
+};
 
 const SECURITY_CARD = (
   <div className="mt-8 rounded-2xl bg-ink p-6 text-white">
@@ -37,6 +48,19 @@ const SECURITY_CARD = (
   </div>
 );
 
+function PreviousButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="mr-auto flex items-center gap-1.5 rounded-xl border border-line px-5 py-3 text-sm font-medium text-ink-soft transition-colors hover:border-ink hover:text-ink"
+    >
+      <ChevronLeft className="size-4" aria-hidden />
+      Previous
+    </button>
+  );
+}
+
 /**
  * The full 4-step vendor onboarding wizard — Figma EZER-KEY nodes 1250:31
  * (Identity & MFA), 1523:1905 (Business Profile), 1523:2785/1523:3303
@@ -53,13 +77,20 @@ const SECURITY_CARD = (
  * - /vendor-apply: an already-registered Vendor (page.tsx's
  *   requireAccountType guard) resuming or editing onboarding — starts at
  *   "business", or "compliance" if a profile was already saved.
+ *
+ * The compliance step's documents are data-driven from documentRequirements
+ * (an admin-configurable list — see app/admin/settings/page.tsx) rather than
+ * a fixed set, so Staff can turn a document off or flip it between required
+ * and optional without a code change.
  */
 export function VendorApplyWizard({
   initialProfile,
   initialStep,
+  documentRequirements,
 }: {
   initialProfile: VendorProfile | null;
   initialStep?: WizardStep;
+  documentRequirements: DocumentRequirement[];
 }) {
   const [step, setStep] = useState<WizardStep>(initialStep ?? (initialProfile ? "compliance" : "business"));
   const [vendorType, setVendorType] = useState<"Manufacturer" | "Distributor">(
@@ -68,12 +99,18 @@ export function VendorApplyWizard({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
-  const [complianceDocId, setComplianceDocId] = useState<string | null>(null);
-  const [eligibilityType, setEligibilityType] = useState<"FdaRegistration" | "NafdacRegistration" | "Other">(
-    "FdaRegistration",
-  );
-  const [eligibilityDocId, setEligibilityDocId] = useState<string | null>(null);
-  const [registrationDocId, setRegistrationDocId] = useState<string | null>(null);
+  // Whether this session started at "identity" (a fresh /register/vendor
+  // signup) rather than "business" (/vendor-apply, an already-registered
+  // vendor) — only in the former case is there anywhere safe for the
+  // business step's Previous button to go back to; identityAction already
+  // handles a resubmit of the same email gracefully (see its comment).
+  const startedAtIdentity = initialStep === "identity";
+
+  // Keyed by requirement.key rather than by DocumentType, since one
+  // requirement (e.g. "Eligibility Status") can offer a choice of several
+  // DocumentType values through a radio group.
+  const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
+  const [eligibilityChoice, setEligibilityChoice] = useState<Record<string, DocumentType>>({});
 
   const completedStepKeys =
     step === "success"
@@ -110,8 +147,8 @@ export function VendorApplyWizard({
     });
   }
 
-  const complianceReady =
-    vendorType === "Manufacturer" ? Boolean(complianceDocId && eligibilityDocId) : Boolean(registrationDocId);
+  const activeRequirements = documentRequirements.filter((r) => r.appliesTo === vendorType && r.enabled);
+  const complianceReady = activeRequirements.filter((r) => r.required).every((r) => uploadedDocs[r.key]);
 
   return (
     <OnboardingShell
@@ -200,12 +237,11 @@ export function VendorApplyWizard({
                 placeholder="City"
                 className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40"
               />
-              <input
+              <StateSearchField
                 name="state"
                 required
                 defaultValue={initialProfile?.businessAddress.state ?? undefined}
                 placeholder="State/province"
-                className="rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40"
               />
               <input
                 name="postalCode"
@@ -216,18 +252,12 @@ export function VendorApplyWizard({
             </div>
           </div>
 
-          <div>
-            <label htmlFor="phone" className="text-sm font-medium text-ink-soft">
-              Phone Number
-            </label>
-            <input
-              id="phone"
-              name="phone"
-              defaultValue={initialProfile?.businessPhone ?? undefined}
-              placeholder="+234"
-              className="mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]"
-            />
-          </div>
+          <PhoneNumberField
+            id="phone"
+            name="phone"
+            label="Phone Number"
+            defaultValue={initialProfile?.businessPhone ?? undefined}
+          />
 
           {error && (
             <p role="alert" className="rounded-xl bg-[#fff0ee] px-4 py-3 text-sm text-[#c0392b]">
@@ -236,6 +266,7 @@ export function VendorApplyWizard({
           )}
 
           <div className="flex items-center justify-end gap-3">
+            {startedAtIdentity && <PreviousButton onClick={() => setStep("identity")} />}
             <button
               type="submit"
               disabled={pending}
@@ -251,87 +282,62 @@ export function VendorApplyWizard({
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold text-ink">Compliance &amp; Verification</h2>
 
-          {vendorType === "Manufacturer" ? (
-            <>
-              <div className="rounded-2xl border border-line p-6">
+          {activeRequirements.length === 0 ? (
+            <p className="rounded-2xl border border-line bg-white p-6 text-sm text-text-muted">
+              No documents are required for onboarding right now.
+            </p>
+          ) : (
+            activeRequirements.map((requirement) => (
+              <div key={requirement.key} className="rounded-2xl border border-line p-6">
                 <div className="flex items-start gap-3">
                   <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint text-ink-soft">
                     <ShieldCheck className="size-4" aria-hidden />
                   </span>
                   <div>
                     <p className="flex items-center gap-2 font-semibold text-ink">
-                      ISO 13485 Certification
-                      <span className="rounded-full bg-[#fff0ee] px-2 py-0.5 text-[10px] font-medium text-[#c0392b]">
-                        Required
-                      </span>
+                      {requirement.label}
+                      {requirement.required ? (
+                        <span className="rounded-full bg-[#fff0ee] px-2 py-0.5 text-[10px] font-medium text-[#c0392b]">
+                          Required
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-medium text-ink-soft">
+                          Optional
+                        </span>
+                      )}
                     </p>
-                    <p className="mt-1 text-sm text-text-muted">
-                      Proof of comprehensive quality management system for medical device design and manufacture.
-                    </p>
+                    <p className="mt-1 text-sm text-text-muted">{requirement.description}</p>
                   </div>
                 </div>
-                <div className="mt-4">
-                  <DocumentUploadField
-                    documentType="IsoCertification"
-                    documentName="ISO 13485 Certification"
-                    hint="PDF, JPG, or PNG (Max 10MB)"
-                    accept=".pdf,.jpg,.jpeg,.png"
-                    onUploaded={setComplianceDocId}
-                  />
-                </div>
-              </div>
 
-              <div className="rounded-2xl border border-line p-6">
-                <p className="font-semibold text-ink">Eligibility Status</p>
-                <div className="mt-3 flex flex-wrap gap-4">
-                  {(
-                    [
-                      ["FdaRegistration", "FDA"],
-                      ["NafdacRegistration", "NAFDAC"],
-                      ["Other", "Other"],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <label key={value} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
-                      <input
-                        type="radio"
-                        name="eligibilityType"
-                        checked={eligibilityType === value}
-                        onChange={() => setEligibilityType(value)}
-                        className="size-4 accent-[#062c24]"
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
+                {requirement.documentTypes.length > 1 && (
+                  <div className="mt-4 flex flex-wrap gap-4">
+                    {requirement.documentTypes.map((docType) => (
+                      <label key={docType} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+                        <input
+                          type="radio"
+                          name={`eligibility-${requirement.key}`}
+                          checked={(eligibilityChoice[requirement.key] ?? requirement.documentTypes[0]) === docType}
+                          onChange={() => setEligibilityChoice((prev) => ({ ...prev, [requirement.key]: docType }))}
+                          className="size-4 accent-[#062c24]"
+                        />
+                        {DOCUMENT_TYPE_LABELS[docType]}
+                      </label>
+                    ))}
+                  </div>
+                )}
+
                 <div className="mt-4">
                   <DocumentUploadField
-                    documentType={eligibilityType}
-                    documentName={`${eligibilityType} eligibility document`}
-                    hint="PDF, DOCX (Max 15MB)"
-                    accept=".pdf,.doc,.docx"
-                    onUploaded={setEligibilityDocId}
+                    documentType={eligibilityChoice[requirement.key] ?? requirement.documentTypes[0]}
+                    documentName={requirement.label}
+                    hint="PDF, JPG, or PNG (Max 10MB)"
+                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                    onUploaded={(documentId) => setUploadedDocs((prev) => ({ ...prev, [requirement.key]: documentId }))}
                   />
                 </div>
               </div>
-            </>
-          ) : (
-            <div className="rounded-2xl border border-line p-6">
-              <p className="flex items-center gap-2 font-semibold text-ink">
-                Business Registration
-                <span className="rounded-full bg-[#fff0ee] px-2 py-0.5 text-[10px] font-medium text-[#c0392b]">
-                  Required
-                </span>
-              </p>
-              <div className="mt-4">
-                <DocumentUploadField
-                  documentType="BusinessRegistration"
-                  documentName="Business Registration"
-                  hint="PDF, JPG, or PNG (Max 10MB)"
-                  accept=".pdf,.jpg,.jpeg,.png"
-                  onUploaded={setRegistrationDocId}
-                />
-              </div>
-            </div>
+            ))
           )}
 
           {error && (
@@ -341,6 +347,7 @@ export function VendorApplyWizard({
           )}
 
           <div className="flex items-center justify-end gap-3">
+            <PreviousButton onClick={() => setStep("business")} />
             <button
               type="button"
               onClick={() => setStep("payout")}
@@ -383,6 +390,7 @@ export function VendorApplyWizard({
               name="accountNumber"
               required
               inputMode="numeric"
+              placeholder="10-digit NUBAN account number"
               className="mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]"
             />
           </div>
@@ -406,13 +414,16 @@ export function VendorApplyWizard({
             </p>
           )}
 
-          <button
-            type="submit"
-            disabled={pending}
-            className="w-full rounded-xl bg-ink px-6 py-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-60"
-          >
-            {pending ? "Completing…" : "Complete Vendor Onboarding"}
-          </button>
+          <div className="flex items-center gap-3">
+            <PreviousButton onClick={() => setStep("compliance")} />
+            <button
+              type="submit"
+              disabled={pending}
+              className="flex-1 rounded-xl bg-ink px-6 py-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-60"
+            >
+              {pending ? "Completing…" : "Complete Vendor Onboarding"}
+            </button>
+          </div>
           <p className="text-center text-xs text-text-muted">
             By continuing you agree to Vitalink&apos;s{" "}
             <Link href="#" className="text-verified hover:text-ink">

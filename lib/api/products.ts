@@ -20,7 +20,14 @@ const ProductSchema = z.object({
   categorySlug: z.string(),
   price: z.number(),
   currency: z.string(),
+  /** Primary image — always mirrors the `isPrimary: true` entry in `images`
+   * when that's populated, kept as its own field since every existing card/
+   * cart/checkout view reads just this one image. */
   imageUrl: z.string().nullable(),
+  /** Full gallery — optional since only vendor-uploaded products (via the
+   * New Product wizard) populate more than one image; seeded catalog
+   * products only ever set imageUrl. */
+  images: z.array(z.object({ url: z.string(), isPrimary: z.boolean() })).optional(),
   shortDescription: z.string(),
   inStock: z.boolean(),
   badge: z.enum(["NAFDAC Approved", "FDA Approved"]).nullable().optional(),
@@ -146,16 +153,43 @@ export async function getProductBySlug(slug: string): Promise<Product | null> {
   return found ? ProductSchema.parse(found) : null;
 }
 
+/**
+ * Relevance score for a search term against one product — higher is a
+ * better match. Mirrors, at a small scale, how a real search engine ranks
+ * results (exact match beats prefix match beats "appears somewhere," and a
+ * hit in the title counts more than a hit buried in the description) so
+ * search results can be shown best-match-first like Google's, instead of in
+ * whatever order the mock catalog array happens to be in. Returns 0 (no
+ * match at all) for a product that shouldn't be included.
+ */
+function searchRelevance(product: Product, query: string): number {
+  const q = query.trim().toLowerCase();
+  if (!q) return 0;
+  const name = product.name.toLowerCase();
+  const brand = (product.brand ?? "").toLowerCase();
+  const category = (product.categoryLabel ?? product.categorySlug).toLowerCase();
+  const description = product.shortDescription.toLowerCase();
+
+  if (name === q) return 100;
+  if (name.startsWith(q)) return 90;
+  if (name.includes(q)) return 70;
+  if (brand.includes(q) || brand.split(/\s+/).some((word) => word === q)) return 50;
+  if (category.includes(q)) return 40;
+  if (description.includes(q)) return 20;
+  return 0;
+}
+
 function filterMockProducts(params: ListProductsParams) {
   const wantedBrands = params.brand
     ? String(params.brand).split(",").map((b) => b.trim()).filter(Boolean)
     : [];
   const minPrice = params.minPrice !== undefined && params.minPrice !== "" ? Number(params.minPrice) : undefined;
   const maxPrice = params.maxPrice !== undefined && params.maxPrice !== "" ? Number(params.maxPrice) : undefined;
+  const query = params.search?.trim();
 
   const filtered = mockProducts.filter((product) => {
     if (params.categorySlug && product.categorySlug !== params.categorySlug) return false;
-    if (params.search && !product.name.toLowerCase().includes(params.search.toLowerCase())) return false;
+    if (query && searchRelevance(product, query) === 0) return false;
     if (wantedBrands.length > 0 && !wantedBrands.includes(product.brand ?? "")) return false;
     if (minPrice !== undefined && product.price < minPrice) return false;
     if (maxPrice !== undefined && product.price > maxPrice) return false;
@@ -170,6 +204,8 @@ function filterMockProducts(params: ListProductsParams) {
     case "name-asc":
       return [...filtered].sort((a, b) => a.name.localeCompare(b.name));
     default:
-      return filtered;
+      // Best-match-first when searching (Google-style ranking); otherwise
+      // the catalog's own order.
+      return query ? [...filtered].sort((a, b) => searchRelevance(b, query) - searchRelevance(a, query)) : filtered;
   }
 }

@@ -15,6 +15,20 @@ export const PATH_PREFIX_ACCOUNT_TYPE = {
 
 export type ProtectedPathPrefix = keyof typeof PATH_PREFIX_ACCOUNT_TYPE;
 
+/**
+ * A vendor is still a shopper — same as any Jumia seller can buy on the main
+ * marketplace with their own account — so these two /buyer paths (and their
+ * subpaths, e.g. /buyer/checkout/success) also accept a Vendor session, on
+ * top of the required Customer one. Every other /buyer/* path (dashboard,
+ * orders, settings, chats) stays Customer-only — a vendor has its own
+ * equivalents under /vendor/*.
+ */
+const BUYER_PATHS_OPEN_TO_VENDORS = ["/buyer/cart", "/buyer/checkout"];
+
+export function isBuyerPathOpenToVendors(pathname: string): boolean {
+  return BUYER_PATHS_OPEN_TO_VENDORS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 const DASHBOARD_PATH: Record<ProtectedPathPrefix, string> = {
   buyer: "/buyer/dashboard",
   vendor: "/vendor/dashboard",

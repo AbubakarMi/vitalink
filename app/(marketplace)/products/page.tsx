@@ -1,4 +1,6 @@
 import { MarketplacePageHeader } from "@/components/marketplace/marketplace-page-header";
+import { SearchResultsHeader } from "@/components/marketplace/search-results-header";
+import { SearchResultsList } from "@/components/marketplace/search-results-list";
 import { ProductSidebarFilters } from "@/components/marketplace/product-sidebar-filters";
 import { ProductToolbar } from "@/components/marketplace/product-toolbar";
 import { MarketplaceProductCard } from "@/components/marketplace/product-card";
@@ -45,6 +47,7 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
     getPriceBounds(),
   ]);
   const view: "grid" | "list" = params.view === "list" ? "list" : "grid";
+  const query = params.search?.trim();
   const toolbarSearch = buildSearch({
     categorySlug: params.categorySlug,
     search: params.search,
@@ -56,7 +59,13 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
 
   return (
     <main className="space-y-6">
-      <MarketplacePageHeader resultCount={totalCount} />
+      {query ? (
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-0">
+          <SearchResultsHeader query={query} resultCount={totalCount} />
+        </div>
+      ) : (
+        <MarketplacePageHeader resultCount={totalCount} />
+      )}
 
       <div className="mx-auto flex max-w-6xl flex-col items-start gap-6 lg:flex-row">
         <ProductSidebarFilters
@@ -74,17 +83,21 @@ export default async function MarketplacePage({ searchParams }: PageProps) {
           <ProductToolbar activeSearch={params.search} activeSort={params.sort} activeView={view} search={toolbarSearch} />
 
           {products.length > 0 ? (
-            <div
-              className={
-                view === "grid"
-                  ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
-                  : "grid grid-cols-1 gap-4"
-              }
-            >
-              {products.map((product) => (
-                <MarketplaceProductCard key={product.id} product={product} />
-              ))}
-            </div>
+            query ? (
+              <SearchResultsList products={products} query={query} />
+            ) : (
+              <div
+                className={
+                  view === "grid"
+                    ? "grid grid-cols-1 gap-6 sm:grid-cols-2 xl:grid-cols-3"
+                    : "grid grid-cols-1 gap-4"
+                }
+              >
+                {products.map((product) => (
+                  <MarketplaceProductCard key={product.id} product={product} />
+                ))}
+              </div>
+            )
           ) : (
             <p className="rounded-[10px] border border-line bg-white px-10 py-12 text-center text-text-muted">
               No products match that search yet.

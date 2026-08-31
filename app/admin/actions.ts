@@ -7,6 +7,7 @@ import { approveVendor, rejectVendor, markVendorUnderReview } from "@/lib/api/ad
 import { approveAdminProduct, rejectAdminProduct } from "@/lib/api/admin/products";
 import { createStaff, approveStaff, suspendStaff, type CreateStaffInput } from "@/lib/api/admin/staff";
 import { processBulkTransfer } from "@/lib/api/admin/settlements";
+import { updateDocumentRequirement } from "@/lib/api/admin/document-requirements";
 import { ApiError } from "@/lib/api/client";
 
 export interface ActionResult {
@@ -123,5 +124,19 @@ export async function processBulkTransferAction(vendorIds: string[]): Promise<Ac
     return result;
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't process the bulk transfer." };
+  }
+}
+
+export async function updateDocumentRequirementAction(
+  key: string,
+  patch: { required?: boolean; enabled?: boolean },
+): Promise<ActionResult> {
+  try {
+    await requireAdminPermission("Settings", "Update");
+    await updateDocumentRequirement(key, patch);
+    revalidatePath("/admin/settings");
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't update that document requirement." };
   }
 }

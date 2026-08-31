@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import type { DeliveryAddress } from "@/lib/api/buyer-profile";
+import { StateSearchField } from "@/components/ui/state-search-field";
 import { saveDeliveryAddressAction, type ActionResult } from "@/app/buyer/settings/actions";
 
 const fieldClass =
@@ -28,12 +29,7 @@ export function DeliveryAddressForm({ initialAddress }: { initialAddress: Delive
             className={fieldClass}
           />
         </div>
-        <div>
-          <label htmlFor="state" className="text-sm font-medium text-ink-soft">
-            State
-          </label>
-          <input id="state" name="state" placeholder="e.g. Enugu" defaultValue={initialAddress?.state} required className={fieldClass} />
-        </div>
+        <StateSearchField id="state" name="state" label="State" defaultValue={initialAddress?.state} required />
         <div>
           <label htmlFor="city" className="text-sm font-medium text-ink-soft">
             City

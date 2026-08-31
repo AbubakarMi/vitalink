@@ -9,6 +9,7 @@ import {
 } from "@/lib/api/vendor-profile";
 import { register, login } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+import { verifySession } from "@/lib/auth/dal";
 
 export interface ActionResult {
   error?: string;
@@ -39,6 +40,16 @@ export async function identityAction(_prevState: IdentityState, formData: FormDa
 
   if (password !== confirmPassword) {
     return { error: "Passwords don't match." };
+  }
+
+  // The wizard's Previous button (vendor-apply-wizard.tsx) can bring someone
+  // back to this step after it already succeeded once — re-submitting with
+  // the same email they just registered would otherwise 409. Already signed
+  // in as that email means this step is done; just continue instead of
+  // erroring on a resubmit that changed nothing.
+  const existingSession = await verifySession();
+  if (existingSession && existingSession.email.toLowerCase() === email.toLowerCase()) {
+    return { success: true };
   }
 
   try {

@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { QuantityAddToCart } from "@/components/marketplace/quantity-add-to-cart";
+import { ProductImageGallery } from "@/components/marketplace/product-image-gallery";
 import type { Product } from "@/lib/api/products";
 
 /** Figma EZER-KEY node 1591:3582 "Product Basic Info". */
@@ -11,13 +12,7 @@ export function ProductHero({ product }: { product: Product }) {
 
   return (
     <div className="grid grid-cols-1 gap-8 lg:grid-cols-[717fr_588fr]">
-      <div className="flex h-[465px] items-center justify-center rounded-2xl bg-[#f4f4f2]">
-        {product.imageUrl ? (
-          <Image src={product.imageUrl} alt={product.name} width={327} height={309} className="object-contain" />
-        ) : (
-          <div className="size-40 rounded-full bg-white" aria-hidden />
-        )}
-      </div>
+      <ProductImageGallery product={product} />
 
       <div className="flex flex-col">
         <span className="flex w-fit items-center gap-1 rounded-full bg-mint px-3.5 py-2 text-sm text-ink-soft">

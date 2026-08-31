@@ -14,12 +14,16 @@ export function Pagination({
   totalCount,
   totalPages,
   searchParams,
+  basePath = "/products",
 }: {
   page: number;
   pageSize: number;
   totalCount: number;
   totalPages: number;
   searchParams: Record<string, string | undefined>;
+  /** Defaults to /products; the dedicated /search results page (Google-style,
+   * search-bar.tsx) passes "/search" to keep its own pagination on itself. */
+  basePath?: string;
 }) {
   const rangeStart = totalCount === 0 ? 0 : (page - 1) * pageSize + 1;
   const rangeEnd = Math.min(page * pageSize, totalCount);
@@ -31,7 +35,7 @@ export function Pagination({
     }
     if (targetPage > 1) params.set("page", String(targetPage));
     const query = params.toString();
-    return query ? `/products?${query}` : "/products";
+    return query ? `${basePath}?${query}` : basePath;
   }
 
   const pageNumbers = Array.from({ length: totalPages }, (_, i) => i + 1).filter(

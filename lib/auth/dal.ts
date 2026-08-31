@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { SESSION_COOKIES, verifyAccessToken, type SessionClaims } from "./session";
+import { SESSION_COOKIES, verifyAccessToken, type SessionClaims, type AccountType } from "./session";
 import { PATH_PREFIX_ACCOUNT_TYPE, dashboardPathForAccountType, type ProtectedPathPrefix } from "./route-groups";
 
 /**
@@ -52,15 +52,22 @@ export async function requireSession(currentPath?: string): Promise<SessionClaim
  * protected prefix (buyer/vendor/admin). Redirects to that account's own dashboard
  * if the role doesn't match. This is the check every page under /buyer, /vendor,
  * and /admin must call directly (not just rely on their layout) — see design doc §2.2.
+ *
+ * `alsoAllow` widens this for the handful of pages any account type can use
+ * even though they live under one role's prefix — currently just /buyer/cart
+ * and /buyer/checkout, which a Vendor session may also reach to buy on the
+ * marketplace like any other shopper (see route-groups.ts's
+ * isBuyerPathOpenToVendors, and proxy.ts's matching fast-path exception).
  */
 export async function requireAccountType(
   prefix: ProtectedPathPrefix,
   currentPath?: string,
+  alsoAllow: AccountType[] = [],
 ): Promise<SessionClaims> {
   const session = await requireSession(currentPath);
   const requiredAccountType = PATH_PREFIX_ACCOUNT_TYPE[prefix];
 
-  if (session.accountType !== requiredAccountType) {
+  if (session.accountType !== requiredAccountType && !alsoAllow.includes(session.accountType)) {
     redirect(dashboardPathForAccountType(session.accountType));
   }
 

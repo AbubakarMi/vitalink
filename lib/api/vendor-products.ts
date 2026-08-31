@@ -61,6 +61,10 @@ export interface CreateVendorProductDraftInput {
   categorySlug: string;
   categoryLabel: string;
   imageUrl: string | null;
+  /** Full set of uploaded images, one flagged isPrimary — imageUrl above is
+   * derived from whichever entry that is. Optional/empty for callers that
+   * only ever collect a single image. */
+  images?: { url: string; isPrimary: boolean }[];
   name: string;
   brand: string;
   brandSku?: string;
@@ -84,6 +88,7 @@ function slugify(name: string): string {
 export async function createVendorProductDraft(input: CreateVendorProductDraftInput): Promise<Product> {
   const vendorId = await currentVendorId();
   const id = `vprod_${randomUUID()}`;
+  const primaryImage = input.images?.find((img) => img.isPrimary) ?? input.images?.[0];
   const product: Product = {
     id,
     slug: `${slugify(input.name)}-${id.slice(-6)}`,
@@ -95,7 +100,8 @@ export async function createVendorProductDraft(input: CreateVendorProductDraftIn
     price: input.price,
     promoPrice: input.promoPrice,
     currency: "NGN",
-    imageUrl: input.imageUrl,
+    imageUrl: primaryImage?.url ?? input.imageUrl,
+    images: input.images,
     shortDescription: "",
     inStock: input.stockCount > 0,
     stockCount: input.stockCount,

@@ -9,6 +9,7 @@ import { useCart } from "@/lib/cart/store";
 import { DELIVERY_FEE } from "@/lib/cart/constants";
 import type { DeliveryAddress } from "@/lib/api/buyer-profile";
 import type { BuyerOrderItem } from "@/lib/api/buyer-orders";
+import { StateSearchField } from "@/components/ui/state-search-field";
 import { completeCheckoutAction } from "@/app/buyer/checkout/actions";
 
 const fieldClass =
@@ -77,7 +78,7 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
             <SectionHeading step={1} label="Delivery Address" />
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Country" name="country" placeholder="e.g. Nigeria" defaultValue={initialAddress?.country ?? "Nigeria"} required />
-              <Field label="State" name="state" placeholder="e.g. Enugu" defaultValue={initialAddress?.state} required />
+              <StateSearchField name="state" label="State" defaultValue={initialAddress?.state} required />
               <Field label="City" name="city" placeholder="e.g. Enugu" defaultValue={initialAddress?.city} required />
               <Field
                 label="Street Address"

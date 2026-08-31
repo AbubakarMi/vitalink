@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { ApiError } from "../client";
 import { findMockUserByEmail } from "./auth-store";
 import { mockProducts } from "./products";
+import type { DocumentType } from "../vendor-profile";
 
 /**
  * In-memory stand-in for the admin/Staff backend (Vendors, Staff, Roles,
@@ -37,6 +38,7 @@ const globalForAdminMock = globalThis as unknown as {
   __vitalinkMockOrders?: MockAdminOrder[];
   __vitalinkMockTransactions?: MockAdminTransaction[];
   __vitalinkMockSettlements?: MockSettlement[];
+  __vitalinkMockDocumentRequirements?: MockDocumentRequirement[];
 };
 
 const roles: MockRole[] =
@@ -949,4 +951,77 @@ export function processMockBulkTransfer(vendorIds: string[]): { transferred: num
     settlement.lastPayoutAt = new Date().toISOString();
   }
   return { transferred, total };
+}
+
+// ---- Document requirements (vendor onboarding config) — lets Staff choose
+// which compliance documents the vendor-apply wizard asks for, and whether
+// each is required or optional, instead of the fixed set that was previously
+// hardcoded straight into vendor-apply-wizard.tsx. Keyed by a stable slot id
+// rather than raw DocumentType because the wizard's "Eligibility Status"
+// block is one requirement backed by a choice of three DocumentType values
+// (FdaRegistration/NafdacRegistration/Other radio group). ----
+
+export interface MockDocumentRequirement {
+  key: string;
+  label: string;
+  description: string;
+  appliesTo: "Manufacturer" | "Distributor";
+  documentTypes: DocumentType[];
+  required: boolean;
+  enabled: boolean;
+}
+
+function seedDocumentRequirementsOnce(): MockDocumentRequirement[] {
+  const existing = globalForAdminMock.__vitalinkMockDocumentRequirements;
+  if (existing) return existing;
+
+  const seeded: MockDocumentRequirement[] = [
+    {
+      key: "iso-certification",
+      label: "ISO 13485 Certification",
+      description: "Proof of quality management system for medical device design and manufacture.",
+      appliesTo: "Manufacturer",
+      documentTypes: ["IsoCertification"],
+      required: true,
+      enabled: true,
+    },
+    {
+      key: "eligibility-document",
+      label: "Eligibility Status (FDA / NAFDAC / Other)",
+      description: "Regulatory eligibility proof — the vendor picks one of FDA, NAFDAC, or Other.",
+      appliesTo: "Manufacturer",
+      documentTypes: ["FdaRegistration", "NafdacRegistration", "Other"],
+      required: true,
+      enabled: true,
+    },
+    {
+      key: "business-registration",
+      label: "Business Registration",
+      description: "Proof the entity is a legally registered distributor/supplier.",
+      appliesTo: "Distributor",
+      documentTypes: ["BusinessRegistration"],
+      required: true,
+      enabled: true,
+    },
+  ];
+  globalForAdminMock.__vitalinkMockDocumentRequirements = seeded;
+  return seeded;
+}
+
+export function listMockDocumentRequirements(): MockDocumentRequirement[] {
+  return seedDocumentRequirementsOnce();
+}
+
+export function updateMockDocumentRequirement(
+  key: string,
+  patch: { required?: boolean; enabled?: boolean },
+): MockDocumentRequirement {
+  const requirements = seedDocumentRequirementsOnce();
+  const requirement = requirements.find((r) => r.key === key);
+  if (!requirement) {
+    throw new ApiError(404, `Unknown document requirement "${key}".`);
+  }
+  if (patch.required !== undefined) requirement.required = patch.required;
+  if (patch.enabled !== undefined) requirement.enabled = patch.enabled;
+  return requirement;
 }

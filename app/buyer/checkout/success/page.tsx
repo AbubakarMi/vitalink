@@ -14,9 +14,13 @@ const STAGES = ["Pending", "Processing", "Shipped", "Delivered"];
 
 /** Matches Desktop - 34.pdf's "Order Placed!" screen, extended with the
  * order's own vitals-trace readout so the confirmation moment already shows
- * where the order sits, not just a static checkmark. */
+ * where the order sits, not just a static checkmark. Open to Vendor sessions
+ * too (route-groups.ts's isBuyerPathOpenToVendors) — the post-checkout links
+ * below route a vendor to their own dashboard instead, since /buyer/orders
+ * and /buyer/dashboard stay Customer-only. */
 export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
-  await requireAccountType("buyer", "/buyer/checkout");
+  const session = await requireAccountType("buyer", "/buyer/checkout", ["Vendor"]);
+  const isVendor = session.accountType === "Vendor";
   const { orderId } = await searchParams;
   const order = orderId ? await getBuyerOrderById(orderId) : null;
 
@@ -41,7 +45,7 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
       )}
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        {order && (
+        {order && !isVendor && (
           <Link
             href={`/buyer/orders/${order.id}`}
             className="rounded-xl border border-line px-6 py-3 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40"
@@ -49,7 +53,10 @@ export default async function CheckoutSuccessPage({ searchParams }: PageProps) {
             View Order
           </Link>
         )}
-        <Link href="/buyer/dashboard" className="rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-ink/85">
+        <Link
+          href={isVendor ? "/vendor/dashboard" : "/buyer/dashboard"}
+          className="rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm hover:bg-ink/85"
+        >
           Go to Dashboard
         </Link>
       </div>

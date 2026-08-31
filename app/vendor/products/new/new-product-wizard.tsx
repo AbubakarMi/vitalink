@@ -2,11 +2,27 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Boxes, FlaskConical, Microscope, TestTube, UploadCloud, Sparkles, CheckCheck } from "lucide-react";
+import { Boxes, FlaskConical, Microscope, TestTube, UploadCloud, Sparkles, CheckCheck, Star, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ProductWizardShell, type WizardStepInfo } from "@/components/vendor/product-wizard-shell";
 import type { GeneratedProductDetails } from "@/lib/api/vendor-products";
 import { createDraftAction, generateDetailsAction, saveDraftAction, publishAction } from "./actions";
+
+interface DraftImage {
+  id: string;
+  file: File;
+  previewUrl: string;
+  isPrimary: boolean;
+}
+
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(new Error("Couldn't read file."));
+    reader.readAsDataURL(file);
+  });
+}
 
 type WizardStep = "categorization" | "identification" | "specifications" | "verification";
 
@@ -58,7 +74,7 @@ export function NewProductWizard() {
   const [pending, startTransition] = useTransition();
 
   const [categorySlug, setCategorySlug] = useState<string>(CATEGORIES[0].slug);
-  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [images, setImages] = useState<DraftImage[]>([]);
   const [identification, setIdentification] = useState<IdentificationData>(EMPTY_IDENTIFICATION);
   const [productId, setProductId] = useState<string | null>(null);
   const [generated, setGenerated] = useState<GeneratedProductDetails | null>(null);
@@ -75,10 +91,36 @@ export function NewProductWizard() {
 
   const categoryLabel = CATEGORIES.find((c) => c.slug === categorySlug)?.label ?? categorySlug;
 
-  function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (file) setImagePreview(URL.createObjectURL(file));
+  function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []);
+    if (files.length === 0) return;
+    setImages((prev) => [
+      ...prev,
+      ...files.map((file, i) => ({
+        id: `${Date.now()}-${i}`,
+        file,
+        previewUrl: URL.createObjectURL(file),
+        isPrimary: prev.length === 0 && i === 0, // first image uploaded is primary by default
+      })),
+    ]);
+    e.target.value = ""; // allow re-selecting the same file(s)
   }
+
+  function setPrimaryImage(id: string) {
+    setImages((prev) => prev.map((img) => ({ ...img, isPrimary: img.id === id })));
+  }
+
+  function removeImage(id: string) {
+    setImages((prev) => {
+      const removed = prev.find((img) => img.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      const next = prev.filter((img) => img.id !== id);
+      if (removed?.isPrimary && next.length > 0) next[0] = { ...next[0], isPrimary: true };
+      return next;
+    });
+  }
+
+  const primaryImage = images.find((img) => img.isPrimary) ?? images[0] ?? null;
 
   function handleIdentificationSubmit(formData: FormData) {
     const data: IdentificationData = {
@@ -94,10 +136,20 @@ export function NewProductWizard() {
     setIdentification(data);
     setError(null);
     startTransition(async () => {
+      let imagePayload: { url: string; isPrimary: boolean }[] = [];
+      try {
+        imagePayload = await Promise.all(
+          images.map(async (img) => ({ url: await readFileAsDataUrl(img.file), isPrimary: img.isPrimary })),
+        );
+      } catch {
+        setError("Couldn't process one of the uploaded images. Please try again.");
+        return;
+      }
       const result = await createDraftAction({
         categorySlug,
         categoryLabel,
-        imageUrl: null,
+        imageUrl: imagePayload.find((img) => img.isPrimary)?.url ?? null,
+        images: imagePayload,
         name: data.name,
         brand: data.brand,
         brandSku: data.brandSku || undefined,
@@ -206,17 +258,55 @@ export function NewProductWizard() {
             })}
           </div>
 
-          <label className="flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-line px-6 py-10 text-center hover:border-ink/40">
-            {imagePreview ? (
-              // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset
-              <img src={imagePreview} alt="" className="h-32 w-32 rounded-xl object-contain" />
-            ) : (
+          <div>
+            <label className="flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-line px-6 py-10 text-center hover:border-ink/40">
               <UploadCloud className="size-6 text-text-muted" aria-hidden />
+              <span className="text-sm font-semibold text-ink">Upload Product Images</span>
+              <span className="text-xs text-text-muted">Add as many as you like — pick one as the primary image</span>
+              <span className="rounded-lg border border-line px-4 py-2 text-xs font-medium text-ink-soft">Browse Files</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleImagesChange} />
+            </label>
+
+            {images.length > 0 && (
+              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {images.map((img) => (
+                  <div
+                    key={img.id}
+                    className={cn(
+                      "group relative aspect-square overflow-hidden rounded-xl border-2",
+                      img.isPrimary ? "border-ink" : "border-line",
+                    )}
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset */}
+                    <img src={img.previewUrl} alt="" className="size-full object-cover" />
+                    {img.isPrimary && (
+                      <span className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-[10px] font-medium text-white">
+                        <Star className="size-2.5 fill-current" aria-hidden />
+                        Primary
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeImage(img.id)}
+                      aria-label="Remove image"
+                      className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-ink/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <X className="size-3.5" aria-hidden />
+                    </button>
+                    {!img.isPrimary && (
+                      <button
+                        type="button"
+                        onClick={() => setPrimaryImage(img.id)}
+                        className="absolute inset-x-0 bottom-0 bg-ink/70 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+                      >
+                        Set as primary
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
             )}
-            <span className="text-sm font-semibold text-ink">Upload Product Image</span>
-            <span className="rounded-lg border border-line px-4 py-2 text-xs font-medium text-ink-soft">Browse Files</span>
-            <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
-          </label>
+          </div>
 
           <div className="flex justify-end">
             <button
@@ -240,18 +330,31 @@ export function NewProductWizard() {
           </div>
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <Field label="Product Name" name="name" defaultValue={identification.name} required />
-            <Field label="Manufacturer" name="brand" defaultValue={identification.brand} required />
-            <Field label="Model" name="brandSku" defaultValue={identification.brandSku} />
-            <Field label="Country of Origin" name="manufacturedIn" defaultValue={identification.manufacturedIn} required />
-            <Field label="Price (N)" name="price" type="number" min="0" defaultValue={identification.price} required />
-            <Field label="Promo Price (N)" name="promoPrice" type="number" min="0" defaultValue={identification.promoPrice} />
-            <Field label="Stock Units" name="stockCount" type="number" min="0" defaultValue={identification.stockCount} required />
+            <Field
+              label="Product Name"
+              name="name"
+              placeholder="e.g. Contec CMS8000 Multi-Parameter Patient Monitor"
+              defaultValue={identification.name}
+              required
+            />
+            <Field label="Manufacturer" name="brand" placeholder="e.g. Contec Medical Systems" defaultValue={identification.brand} required />
+            <Field label="Model" name="brandSku" placeholder="e.g. CMS8000-XL" defaultValue={identification.brandSku} />
+            <Field
+              label="Country of Origin"
+              name="manufacturedIn"
+              placeholder="e.g. China"
+              defaultValue={identification.manufacturedIn}
+              required
+            />
+            <Field label="Price (N)" name="price" type="number" min="0" placeholder="0" defaultValue={identification.price} required />
+            <Field label="Promo Price (N)" name="promoPrice" type="number" min="0" placeholder="Optional" defaultValue={identification.promoPrice} />
+            <Field label="Stock Units" name="stockCount" type="number" min="0" placeholder="0" defaultValue={identification.stockCount} required />
             <Field
               label="Low-Stock Alert Level"
               name="lowStockThreshold"
               type="number"
               min="0"
+              placeholder="e.g. 10"
               defaultValue={identification.lowStockThreshold}
               required
             />
@@ -353,13 +456,29 @@ export function NewProductWizard() {
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
             <div>
               <span className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-line bg-cream">
-                {imagePreview ? (
+                {primaryImage ? (
                   // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset
-                  <img src={imagePreview} alt="" className="h-full w-full object-contain p-4" />
+                  <img src={primaryImage.previewUrl} alt="" className="h-full w-full object-contain p-4" />
                 ) : (
                   <span className="text-xs text-text-muted">No image</span>
                 )}
               </span>
+              {images.length > 1 && (
+                <div className="mt-3 flex gap-2">
+                  {images.map((img) => (
+                    // eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset
+                    <img
+                      key={img.id}
+                      src={img.previewUrl}
+                      alt=""
+                      className={cn(
+                        "size-12 rounded-lg border object-cover",
+                        img.isPrimary ? "border-ink" : "border-line",
+                      )}
+                    />
+                  ))}
+                </div>
+              )}
               <dl className="mt-4 space-y-3 text-sm">
                 <SummaryRow label="Price" value={`N${Number(identification.price || 0).toLocaleString("en-NG")}`} />
                 {identification.promoPrice && (
@@ -436,6 +555,7 @@ function Field({
   required,
   type = "text",
   min,
+  placeholder,
 }: {
   label: string;
   name: string;
@@ -443,6 +563,7 @@ function Field({
   required?: boolean;
   type?: string;
   min?: string;
+  placeholder?: string;
 }) {
   return (
     <div>
@@ -454,6 +575,7 @@ function Field({
         name={name}
         type={type}
         min={min}
+        placeholder={placeholder}
         required={required}
         defaultValue={defaultValue}
         className="mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]"
@@ -485,6 +607,7 @@ function GeneratedDetailsEditor({
         <textarea
           value={generated.shortDescription}
           onChange={(e) => onChange({ ...generated, shortDescription: e.target.value })}
+          placeholder="Describe the product for buyers…"
           rows={4}
           className="mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40"
         />
@@ -497,6 +620,7 @@ function GeneratedDetailsEditor({
             <div key={i} className="grid grid-cols-1 gap-2 sm:grid-cols-2">
               <input
                 value={spec.label}
+                placeholder="e.g. Weight"
                 onChange={(e) => {
                   const next = [...generated.technicalSpecs];
                   next[i] = { ...next[i], label: e.target.value };
@@ -506,6 +630,7 @@ function GeneratedDetailsEditor({
               />
               <input
                 value={spec.value}
+                placeholder="e.g. 2.5 kg"
                 onChange={(e) => {
                   const next = [...generated.technicalSpecs];
                   next[i] = { ...next[i], value: e.target.value };
