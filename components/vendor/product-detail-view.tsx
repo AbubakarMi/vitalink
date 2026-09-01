@@ -3,11 +3,13 @@
 import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Pencil, Sparkles, Trash2, CheckCheck, PackagePlus, Archive, ImageOff, Star } from "lucide-react";
+import { Pencil, Sparkles, Trash2, CheckCheck, PackagePlus, RotateCcw, ImageOff, Star } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Product } from "@/lib/api/products";
 import type { MockReview } from "@/lib/api/reviews";
 import { StatusPill } from "./status-pill";
+import { ArchiveConfirmButton } from "./archive-confirm-button";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 
 /**
  * One component branching on product.status rather than two separate pages
@@ -25,6 +27,7 @@ export function ProductDetailView({
   onRegenerate,
   onDelete,
   onArchive,
+  onUnarchive,
   onRestock,
 }: {
   product: Product;
@@ -33,6 +36,7 @@ export function ProductDetailView({
   onRegenerate: () => Promise<void>;
   onDelete: () => Promise<void>;
   onArchive: () => Promise<void>;
+  onUnarchive: () => Promise<void>;
   onRestock: (formData: FormData) => Promise<void>;
 }) {
   const isDraft = DRAFT_STATUSES.has(product.status ?? "PendingReview");
@@ -41,13 +45,13 @@ export function ProductDetailView({
   return (
     <div>
       <Link href="/vendor/products" className="text-sm font-medium text-text-muted hover:text-ink">
-        ← Global Inventory
+        ← Inventory
       </Link>
 
       {isDraft ? (
         <DraftProductView product={product} draftReady={draftReady} onPublish={onPublish} onRegenerate={onRegenerate} onDelete={onDelete} />
       ) : (
-        <PublishedProductView product={product} reviews={reviews} onArchive={onArchive} onRestock={onRestock} />
+        <PublishedProductView product={product} reviews={reviews} onArchive={onArchive} onUnarchive={onUnarchive} onRestock={onRestock} />
       )}
     </div>
   );
@@ -83,6 +87,16 @@ function DraftProductView({
       <h1 className="text-2xl font-semibold text-ink">{product.name || "Draft product"}</h1>
       <p className="mt-1 text-sm text-text-muted">Confirm the information for your product and publish it to the marketplace.</p>
 
+      {product.status === "Rejected" && product.rejectionReason && (
+        <div className="mt-4 rounded-xl bg-[#fff0ee] px-4 py-3">
+          <p className="text-xs font-semibold tracking-wide text-[#c0392b] uppercase">Rejected — needs fixing</p>
+          <p className="mt-1 text-sm text-[#c0392b]">{product.rejectionReason}</p>
+          <p className="mt-1 text-xs text-[#c0392b]/80">
+            Edit the listing to address this, then publish again to resubmit for review.
+          </p>
+        </div>
+      )}
+
       <div className="mt-6 grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
         <div>
           <div className="relative aspect-square">
@@ -98,40 +112,50 @@ function DraftProductView({
           </dl>
 
           <div className="mt-6 flex flex-col gap-2">
-            <form action={onPublish}>
-              <button
-                type="submit"
-                disabled={!draftReady}
-                className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-40"
-              >
-                <CheckCheck className="size-4" aria-hidden />
-                Publish to Marketplace
-              </button>
-            </form>
+            <ConfirmActionButton
+              onConfirm={onPublish}
+              disabled={!draftReady}
+              tone="neutral"
+              title={product.status === "Rejected" ? "Resubmit for review?" : "Submit for review?"}
+              description="An admin will need to approve this before it's visible to buyers on the marketplace."
+              confirmLabel={product.status === "Rejected" ? "Yes, resubmit" : "Yes, submit"}
+              trigger={
+                <button
+                  type="button"
+                  disabled={!draftReady}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-4 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-40"
+                >
+                  <CheckCheck className="size-4" aria-hidden />
+                  {product.status === "Rejected" ? "Resubmit for Review" : "Submit for Review"}
+                </button>
+              }
+            />
             <div className="flex gap-2">
               <Link
                 href={`/vendor/products/${product.id}/edit`}
-                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:border-ink"
+                className="flex flex-1 items-center justify-center gap-1.5 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:bg-cream hover:text-ink"
               >
                 <Pencil className="size-3.5" aria-hidden /> Edit
               </Link>
-              <form action={onRegenerate} className="flex-1">
-                <button
-                  type="submit"
-                  className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-line px-4 py-2.5 text-sm font-medium text-ink-soft hover:border-ink"
-                >
-                  <Sparkles className="size-3.5" aria-hidden /> Regenerate
-                </button>
-              </form>
+              <div className="flex-1">
+                <ConfirmActionButton
+                  onConfirm={onRegenerate}
+                  tone="neutral"
+                  title="Regenerate product details?"
+                  description="This overwrites the current description, specs, and accessories with a freshly generated version — you can't get the old one back."
+                  confirmLabel="Yes, regenerate"
+                  trigger={
+                    <button
+                      type="button"
+                      className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#4338ca]/30 px-4 py-2.5 text-sm font-medium text-[#4338ca] transition-colors hover:border-[#4338ca] hover:bg-[#eef0ff]"
+                    >
+                      <Sparkles className="size-3.5" aria-hidden /> Regenerate
+                    </button>
+                  }
+                />
+              </div>
             </div>
-            <form action={onDelete}>
-              <button
-                type="submit"
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl px-4 py-2.5 text-sm font-medium text-[#c0392b] hover:bg-[#fff0ee]"
-              >
-                <Trash2 className="size-3.5" aria-hidden /> Delete
-              </button>
-            </form>
+            <DeleteDraftButton productName={product.name} onDelete={onDelete} />
           </div>
         </div>
 
@@ -163,11 +187,13 @@ function PublishedProductView({
   product,
   reviews,
   onArchive,
+  onUnarchive,
   onRestock,
 }: {
   product: Product;
   reviews: MockReview[];
   onArchive: () => Promise<void>;
+  onUnarchive: () => Promise<void>;
   onRestock: (formData: FormData) => Promise<void>;
 }) {
   const [tab, setTab] = useState<Tab>("specs");
@@ -193,20 +219,29 @@ function PublishedProductView({
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
           href={`/vendor/products/${product.id}/edit`}
-          className="flex items-center gap-1.5 rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft hover:border-ink"
+          className="flex items-center gap-1.5 rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft transition-colors hover:border-ink/40 hover:bg-cream hover:text-ink"
         >
           <Pencil className="size-3.5" aria-hidden /> Edit Product
         </Link>
         <RestockForm onRestock={onRestock} />
-        {product.status !== "Archived" && (
-          <form action={onArchive}>
-            <button
-              type="submit"
-              className="flex items-center gap-1.5 rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft hover:border-ink"
-            >
-              <Archive className="size-3.5" aria-hidden /> Archive
-            </button>
-          </form>
+        {product.status !== "Archived" ? (
+          <ArchiveConfirmButton productName={product.name} onArchive={onArchive} />
+        ) : (
+          <ConfirmActionButton
+            onConfirm={onUnarchive}
+            tone="neutral"
+            title={`Un-archive "${product.name}"?`}
+            description="This puts the listing back on the marketplace, visible and purchasable by buyers again."
+            confirmLabel="Yes, un-archive it"
+            trigger={
+              <button
+                type="button"
+                className="flex items-center gap-1.5 rounded-xl border border-verified/30 px-4 py-2 text-sm font-medium text-verified transition-colors hover:border-verified hover:bg-mint"
+              >
+                <RotateCcw className="size-3.5" aria-hidden /> Un-archive
+              </button>
+            }
+          />
         )}
       </div>
 
@@ -320,23 +355,59 @@ function PublishedProductView({
 }
 
 function RestockForm({ onRestock }: { onRestock: (formData: FormData) => Promise<void> }) {
+  const [addedUnits, setAddedUnits] = useState(10);
+
   return (
-    <form action={onRestock} className="flex items-center gap-2">
+    <div className="flex items-center gap-2">
       <input
         type="number"
-        name="addedUnits"
         min="1"
-        defaultValue={10}
+        value={addedUnits}
+        onChange={(e) => setAddedUnits(Number(e.target.value) || 0)}
         aria-label="Units to add"
-        className="w-20 rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink"
+        className="w-20 rounded-xl border border-line bg-white px-3 py-2 text-sm text-ink outline-none focus:border-verified"
       />
-      <button
-        type="submit"
-        className="flex items-center gap-1.5 rounded-xl border border-line px-4 py-2 text-sm font-medium text-ink-soft hover:border-ink"
-      >
-        <PackagePlus className="size-3.5" aria-hidden /> Restock
-      </button>
-    </form>
+      <ConfirmActionButton
+        onConfirm={async () => {
+          const formData = new FormData();
+          formData.set("addedUnits", String(addedUnits));
+          await onRestock(formData);
+        }}
+        disabled={addedUnits < 1}
+        tone="neutral"
+        title={`Add ${addedUnits} unit${addedUnits === 1 ? "" : "s"} to stock?`}
+        description="This updates the stock count buyers see as available right away."
+        confirmLabel="Yes, restock"
+        trigger={
+          <button
+            type="button"
+            disabled={addedUnits < 1}
+            className="flex items-center gap-1.5 rounded-xl border border-verified/30 px-4 py-2 text-sm font-medium text-verified transition-colors hover:border-verified hover:bg-mint disabled:opacity-40"
+          >
+            <PackagePlus className="size-3.5" aria-hidden /> Restock
+          </button>
+        }
+      />
+    </div>
+  );
+}
+
+function DeleteDraftButton({ productName, onDelete }: { productName: string; onDelete: () => Promise<void> }) {
+  return (
+    <ConfirmActionButton
+      onConfirm={onDelete}
+      title={`Delete "${productName}"?`}
+      description="This permanently removes the draft — there's no way to undo this or recover it afterward."
+      confirmLabel="Yes, delete it"
+      trigger={
+        <button
+          type="button"
+          className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-[#c0392b]/30 px-4 py-2.5 text-sm font-medium text-[#c0392b] transition-colors hover:border-[#c0392b] hover:bg-[#fff0ee]"
+        >
+          <Trash2 className="size-3.5" aria-hidden /> Delete
+        </button>
+      }
+    />
   );
 }
 

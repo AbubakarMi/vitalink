@@ -6,5 +6,5 @@ export const mockCategories = [
   { id: "cat_medical-equipment", name: "Medical Equipment", slug: "medical-equipment", imageUrl: null },
   { id: "cat_scientific-tools", name: "Scientific Tools", slug: "scientific-tools", imageUrl: null },
   { id: "cat_reagents-culture-media", name: "Reagents & Culture Media", slug: "reagents-culture-media", imageUrl: null },
-  { id: "cat_lab-equipment", name: "Lab Equipments", slug: "lab-equipment", imageUrl: null },
+  { id: "cat_lab-equipment", name: "Lab Equipment", slug: "lab-equipment", imageUrl: null },
 ];

@@ -9,7 +9,7 @@ import { PhoneNumberField } from "@/components/ui/phone-input-field";
 import { StateSearchField } from "@/components/ui/state-search-field";
 import { NIGERIAN_BANKS } from "@/lib/vendor-onboarding/banks";
 import type { VendorProfile, DocumentType } from "@/lib/api/vendor-profile";
-import type { DocumentRequirement } from "@/lib/api/admin/document-requirements";
+import type { OnboardingField } from "@/lib/api/admin/onboarding-fields";
 import { DocumentUploadField } from "./document-upload-field";
 import { VendorIdentityForm } from "./vendor-identity-form";
 import { saveBusinessProfileAction, savePayoutAction } from "./actions";
@@ -78,19 +78,19 @@ function PreviousButton({ onClick }: { onClick: () => void }) {
  *   requireAccountType guard) resuming or editing onboarding — starts at
  *   "business", or "compliance" if a profile was already saved.
  *
- * The compliance step's documents are data-driven from documentRequirements
- * (an admin-configurable list — see app/admin/settings/page.tsx) rather than
- * a fixed set, so Staff can turn a document off or flip it between required
- * and optional without a code change.
+ * The compliance step's fields are data-driven from onboardingFields (an
+ * admin-configurable list — see app/admin/settings/page.tsx) rather than a
+ * fixed set, so Staff can add/remove a field, turn one off, flip it between
+ * required and optional, or change its description without a code change.
  */
 export function VendorApplyWizard({
   initialProfile,
   initialStep,
-  documentRequirements,
+  onboardingFields,
 }: {
   initialProfile: VendorProfile | null;
   initialStep?: WizardStep;
-  documentRequirements: DocumentRequirement[];
+  onboardingFields: OnboardingField[];
 }) {
   const [step, setStep] = useState<WizardStep>(initialStep ?? (initialProfile ? "compliance" : "business"));
   const [vendorType, setVendorType] = useState<"Manufacturer" | "Distributor">(
@@ -106,11 +106,13 @@ export function VendorApplyWizard({
   // handles a resubmit of the same email gracefully (see its comment).
   const startedAtIdentity = initialStep === "identity";
 
-  // Keyed by requirement.key rather than by DocumentType, since one
-  // requirement (e.g. "Eligibility Status") can offer a choice of several
+  // Keyed by field.key rather than by DocumentType, since one document
+  // field (e.g. "Eligibility Status") can offer a choice of several
   // DocumentType values through a radio group.
   const [uploadedDocs, setUploadedDocs] = useState<Record<string, string>>({});
   const [eligibilityChoice, setEligibilityChoice] = useState<Record<string, DocumentType>>({});
+  // Text/number field values, also keyed by field.key.
+  const [fieldValues, setFieldValues] = useState<Record<string, string>>({});
 
   const completedStepKeys =
     step === "success"
@@ -147,8 +149,12 @@ export function VendorApplyWizard({
     });
   }
 
-  const activeRequirements = documentRequirements.filter((r) => r.appliesTo === vendorType && r.enabled);
-  const complianceReady = activeRequirements.filter((r) => r.required).every((r) => uploadedDocs[r.key]);
+  const activeFields = onboardingFields.filter(
+    (f) => (f.appliesTo === vendorType || f.appliesTo === "Both") && f.enabled,
+  );
+  const complianceReady = activeFields
+    .filter((f) => f.required)
+    .every((f) => (f.type === "document" ? Boolean(uploadedDocs[f.key]) : Boolean(fieldValues[f.key]?.trim())));
 
   return (
     <OnboardingShell
@@ -282,62 +288,77 @@ export function VendorApplyWizard({
         <div className="space-y-6">
           <h2 className="text-2xl font-semibold text-ink">Compliance &amp; Verification</h2>
 
-          {activeRequirements.length === 0 ? (
+          {activeFields.length === 0 ? (
             <p className="rounded-2xl border border-line bg-white p-6 text-sm text-text-muted">
-              No documents are required for onboarding right now.
+              Nothing is required for onboarding right now.
             </p>
           ) : (
-            activeRequirements.map((requirement) => (
-              <div key={requirement.key} className="rounded-2xl border border-line p-6">
-                <div className="flex items-start gap-3">
-                  <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint text-ink-soft">
-                    <ShieldCheck className="size-4" aria-hidden />
-                  </span>
-                  <div>
-                    <p className="flex items-center gap-2 font-semibold text-ink">
-                      {requirement.label}
-                      {requirement.required ? (
-                        <span className="rounded-full bg-[#fff0ee] px-2 py-0.5 text-[10px] font-medium text-[#c0392b]">
-                          Required
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-medium text-ink-soft">
-                          Optional
-                        </span>
+            activeFields.map((field) => {
+              const documentTypes = field.documentTypes ?? ["Other"];
+              return (
+                <div key={field.key} className="rounded-2xl border border-line p-6">
+                  <div className="flex items-start gap-3">
+                    <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-mint text-ink-soft">
+                      <ShieldCheck className="size-4" aria-hidden />
+                    </span>
+                    <div>
+                      <p className="flex items-center gap-2 font-semibold text-ink">
+                        {field.label}
+                        {field.required ? (
+                          <span className="rounded-full bg-[#fff0ee] px-2 py-0.5 text-[10px] font-medium text-[#c0392b]">
+                            Required
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-mint px-2 py-0.5 text-[10px] font-medium text-ink-soft">
+                            Optional
+                          </span>
+                        )}
+                      </p>
+                      <p className="mt-1 text-sm text-text-muted">{field.description}</p>
+                    </div>
+                  </div>
+
+                  {field.type === "document" ? (
+                    <>
+                      {documentTypes.length > 1 && (
+                        <div className="mt-4 flex flex-wrap gap-4">
+                          {documentTypes.map((docType) => (
+                            <label key={docType} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
+                              <input
+                                type="radio"
+                                name={`eligibility-${field.key}`}
+                                checked={(eligibilityChoice[field.key] ?? documentTypes[0]) === docType}
+                                onChange={() => setEligibilityChoice((prev) => ({ ...prev, [field.key]: docType }))}
+                                className="size-4 accent-[#062c24]"
+                              />
+                              {DOCUMENT_TYPE_LABELS[docType]}
+                            </label>
+                          ))}
+                        </div>
                       )}
-                    </p>
-                    <p className="mt-1 text-sm text-text-muted">{requirement.description}</p>
-                  </div>
-                </div>
 
-                {requirement.documentTypes.length > 1 && (
-                  <div className="mt-4 flex flex-wrap gap-4">
-                    {requirement.documentTypes.map((docType) => (
-                      <label key={docType} className="flex cursor-pointer items-center gap-2 text-sm text-ink-soft">
-                        <input
-                          type="radio"
-                          name={`eligibility-${requirement.key}`}
-                          checked={(eligibilityChoice[requirement.key] ?? requirement.documentTypes[0]) === docType}
-                          onChange={() => setEligibilityChoice((prev) => ({ ...prev, [requirement.key]: docType }))}
-                          className="size-4 accent-[#062c24]"
+                      <div className="mt-4">
+                        <DocumentUploadField
+                          documentType={eligibilityChoice[field.key] ?? documentTypes[0]}
+                          documentName={field.label}
+                          hint="PDF, JPG, or PNG (Max 10MB)"
+                          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                          onUploaded={(documentId) => setUploadedDocs((prev) => ({ ...prev, [field.key]: documentId }))}
                         />
-                        {DOCUMENT_TYPE_LABELS[docType]}
-                      </label>
-                    ))}
-                  </div>
-                )}
-
-                <div className="mt-4">
-                  <DocumentUploadField
-                    documentType={eligibilityChoice[requirement.key] ?? requirement.documentTypes[0]}
-                    documentName={requirement.label}
-                    hint="PDF, JPG, or PNG (Max 10MB)"
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                    onUploaded={(documentId) => setUploadedDocs((prev) => ({ ...prev, [requirement.key]: documentId }))}
-                  />
+                      </div>
+                    </>
+                  ) : (
+                    <input
+                      type={field.type === "number" ? "number" : "text"}
+                      value={fieldValues[field.key] ?? ""}
+                      onChange={(e) => setFieldValues((prev) => ({ ...prev, [field.key]: e.target.value }))}
+                      placeholder={field.type === "number" ? "0" : `Enter ${field.label.toLowerCase()}`}
+                      className="mt-4 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]"
+                    />
+                  )}
                 </div>
-              </div>
-            ))
+              );
+            })
           )}
 
           {error && (

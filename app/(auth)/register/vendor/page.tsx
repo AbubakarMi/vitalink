@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { verifySession } from "@/lib/auth/dal";
-import { listDocumentRequirements } from "@/lib/api/admin/document-requirements";
+import { listOnboardingFields } from "@/lib/api/admin/onboarding-fields";
 import { VendorApplyWizard } from "../../vendor-apply/vendor-apply-wizard";
 
 export const instant = false; // verifySession reads cookies — genuinely dynamic
@@ -23,7 +23,7 @@ export default async function VendorRegisterPage() {
   if (session) {
     redirect("/vendor-apply");
   }
-  const documentRequirements = await listDocumentRequirements();
+  const onboardingFields = await listOnboardingFields();
 
-  return <VendorApplyWizard initialProfile={null} initialStep="identity" documentRequirements={documentRequirements} />;
+  return <VendorApplyWizard initialProfile={null} initialStep="identity" onboardingFields={onboardingFields} />;
 }

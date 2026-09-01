@@ -5,7 +5,7 @@ export const CATEGORY_OPTIONS: { label: string; slug?: string }[] = [
   { label: "Medical Equipment", slug: "medical-equipment" },
   { label: "Scientific Equipment", slug: "scientific-tools" },
   { label: "Reagents & Culture Media", slug: "reagents-culture-media" },
-  { label: "Lab Equipments", slug: "lab-equipment" },
+  { label: "Lab Equipment", slug: "lab-equipment" },
 ];
 
 /** Sidebar category list — real navigation via ?categorySlug= against

@@ -36,6 +36,11 @@ const AdminProductSchema = z.object({
   name: z.string(),
   sku: z.string().nullable().optional(),
   imageUrl: z.string().nullable().optional(),
+  /** Full gallery — primary + supporting images (see the New Product
+   * wizard's image upload step). Optional since only vendor-submitted
+   * products (as opposed to the static seed catalog) populate more than
+   * imageUrl. */
+  images: z.array(z.object({ url: z.string(), isPrimary: z.boolean() })).nullable().optional(),
   price: z.number(),
   originalPrice: z.number().nullable().optional(),
   stock: z.number().nullable().optional(),

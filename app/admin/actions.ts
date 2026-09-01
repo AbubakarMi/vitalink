@@ -7,7 +7,17 @@ import { approveVendor, rejectVendor, markVendorUnderReview } from "@/lib/api/ad
 import { approveAdminProduct, rejectAdminProduct } from "@/lib/api/admin/products";
 import { createStaff, approveStaff, suspendStaff, type CreateStaffInput } from "@/lib/api/admin/staff";
 import { processBulkTransfer } from "@/lib/api/admin/settlements";
-import { updateDocumentRequirement } from "@/lib/api/admin/document-requirements";
+import {
+  updateOnboardingField,
+  createOnboardingField,
+  deleteOnboardingField,
+  type CreateOnboardingFieldInput,
+} from "@/lib/api/admin/onboarding-fields";
+import {
+  createAdminProductCategory,
+  setAdminProductCategoryActive,
+  type CreateAdminProductCategoryInput,
+} from "@/lib/api/admin/categories";
 import { ApiError } from "@/lib/api/client";
 
 export interface ActionResult {
@@ -23,7 +33,7 @@ async function requireAdminPermission(resource: string, action: string) {
 
 export async function approveVendorAction(vendorId: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Vendors", "Approve");
+    await requireAdminPermission("Vendors", "Manage");
     await approveVendor(vendorId);
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
@@ -36,7 +46,7 @@ export async function approveVendorAction(vendorId: string): Promise<ActionResul
 
 export async function rejectVendorAction(vendorId: string, reason: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Vendors", "Reject");
+    await requireAdminPermission("Vendors", "Manage");
     await rejectVendor(vendorId, reason);
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
@@ -49,7 +59,7 @@ export async function rejectVendorAction(vendorId: string, reason: string): Prom
 
 export async function markVendorUnderReviewAction(vendorId: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Vendors", "Approve");
+    await requireAdminPermission("Vendors", "Manage");
     await markVendorUnderReview(vendorId);
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
@@ -61,7 +71,7 @@ export async function markVendorUnderReviewAction(vendorId: string): Promise<Act
 
 export async function approveProductAction(productId: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Products", "Approve");
+    await requireAdminPermission("Products", "Manage");
     await approveAdminProduct(productId);
     revalidatePath("/admin/inventory");
     return {};
@@ -72,7 +82,7 @@ export async function approveProductAction(productId: string): Promise<ActionRes
 
 export async function rejectProductAction(productId: string, reason: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Products", "Reject");
+    await requireAdminPermission("Products", "Manage");
     await rejectAdminProduct(productId, reason);
     revalidatePath("/admin/inventory");
     return {};
@@ -83,7 +93,7 @@ export async function rejectProductAction(productId: string, reason: string): Pr
 
 export async function createStaffAction(input: CreateStaffInput): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Staff", "Create");
+    await requireAdminPermission("Staff", "Manage");
     await createStaff(input);
     revalidatePath("/admin/users");
     revalidatePath("/admin/dashboard");
@@ -95,7 +105,7 @@ export async function createStaffAction(input: CreateStaffInput): Promise<Action
 
 export async function approveStaffAction(staffId: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Staff", "Create");
+    await requireAdminPermission("Staff", "Manage");
     await approveStaff(staffId);
     revalidatePath("/admin/users");
     return {};
@@ -106,7 +116,7 @@ export async function approveStaffAction(staffId: string): Promise<ActionResult>
 
 export async function suspendStaffAction(staffId: string): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Staff", "Create");
+    await requireAdminPermission("Staff", "Manage");
     await suspendStaff(staffId);
     revalidatePath("/admin/users");
     return {};
@@ -117,7 +127,7 @@ export async function suspendStaffAction(staffId: string): Promise<ActionResult>
 
 export async function processBulkTransferAction(vendorIds: string[]): Promise<ActionResult & { transferred?: number; total?: number }> {
   try {
-    await requireAdminPermission("Vendors", "Approve");
+    await requireAdminPermission("Vendors", "Manage");
     const result = await processBulkTransfer(vendorIds);
     revalidatePath("/admin/settlements");
     revalidatePath("/admin/transactions");
@@ -127,16 +137,73 @@ export async function processBulkTransferAction(vendorIds: string[]): Promise<Ac
   }
 }
 
-export async function updateDocumentRequirementAction(
+// No requireAdminPermission() on any of these three, on purpose: "Settings"
+// isn't a real backend resource (Shared/Identity/ResourceConstants.cs has no
+// such entry) — this whole feature is frontend-owned config with no backend
+// endpoint at all (see lib/api/admin/onboarding-fields.ts), so there's no
+// real permission to check against. Gating on account type alone is the
+// honest version of this check.
+
+export async function updateOnboardingFieldAction(
   key: string,
   patch: { required?: boolean; enabled?: boolean },
 ): Promise<ActionResult> {
   try {
-    await requireAdminPermission("Settings", "Update");
-    await updateDocumentRequirement(key, patch);
+    await requireAccountType("admin", "/admin/dashboard");
+    await updateOnboardingField(key, patch);
     revalidatePath("/admin/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't update that document requirement." };
+    return { error: err instanceof ApiError ? err.message : "Couldn't update that field." };
+  }
+}
+
+export async function createOnboardingFieldAction(input: CreateOnboardingFieldInput): Promise<ActionResult> {
+  try {
+    await requireAccountType("admin", "/admin/dashboard");
+    if (!input.label.trim()) {
+      return { error: "Give the field a label." };
+    }
+    await createOnboardingField(input);
+    revalidatePath("/admin/settings");
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't add that field." };
+  }
+}
+
+export async function deleteOnboardingFieldAction(key: string): Promise<ActionResult> {
+  try {
+    await requireAccountType("admin", "/admin/dashboard");
+    await deleteOnboardingField(key);
+    revalidatePath("/admin/settings");
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't remove that field." };
+  }
+}
+
+export async function createCategoryAction(input: CreateAdminProductCategoryInput): Promise<ActionResult> {
+  try {
+    await requireAdminPermission("ProductCategories", "Manage");
+    if (!input.name.trim()) {
+      return { error: "Give the category a name." };
+    }
+    await createAdminProductCategory(input);
+    revalidatePath("/admin/settings/categories");
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't add that category." };
+  }
+}
+
+export async function setCategoryActiveAction(id: string, isActive: boolean): Promise<ActionResult> {
+  try {
+    await requireAdminPermission("ProductCategories", "Manage");
+    await setAdminProductCategoryActive(id, isActive);
+    revalidatePath("/admin/settings/categories");
+    return {};
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't update that category." };
   }
 }

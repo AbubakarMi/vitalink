@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -14,6 +14,11 @@ import {
   Landmark,
   BarChart3,
   Settings as SettingsIcon,
+  ClipboardList,
+  Tags,
+  Contact,
+  FileBarChart,
+  ChevronDown,
   Menu,
   X,
 } from "lucide-react";
@@ -35,13 +40,22 @@ const NAV_ITEMS = [
   { href: "/admin/inventory", label: "Global Inventory", icon: Boxes },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
+  { href: "/admin/buyers", label: "Buyers", icon: Contact },
   { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/admin/settlements", label: "Settlements", icon: Landmark },
 ] as const;
 
 const NAV_ITEMS_BOTTOM = [
-  { href: "/admin/analytics", label: "Analytics & Reports", icon: BarChart3 },
-  { href: "/admin/settings", label: "Settings", icon: SettingsIcon },
+  { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
+  { href: "/admin/reports", label: "Reports", icon: FileBarChart },
+] as const;
+
+/** "Configuration" is a module, not a single page — a dropdown of every
+ * platform-configuration screen, per the sidebar's new grouping. Settings
+ * moved in here rather than staying its own top-level item. */
+const CONFIGURATION_ITEMS = [
+  { href: "/admin/settings", label: "Onboarding Fields", icon: ClipboardList },
+  { href: "/admin/settings/categories", label: "Product Categories", icon: Tags },
 ] as const;
 
 export function DashboardShell({
@@ -157,8 +171,13 @@ function SidebarNav({
     <>
       {!bottomOnly && (
         <nav className="space-y-1">
-          {NAV_ITEMS.map((item) => (
-            <AdminNavLink key={item.href} item={item} active={pathname?.startsWith(item.href) ?? false} />
+          {NAV_ITEMS.map((item, i) => (
+            <Fragment key={item.href}>
+              <AdminNavLink item={item} active={pathname?.startsWith(item.href) ?? false} />
+              {/* Configuration sits right under Overview — the first thing an
+                  admin sees, not buried after every operational nav item. */}
+              {i === 0 && <ConfigurationNavGroup pathname={pathname} />}
+            </Fragment>
           ))}
         </nav>
       )}
@@ -170,6 +189,56 @@ function SidebarNav({
         </nav>
       )}
     </>
+  );
+}
+
+/** "Configuration" — a module (dropdown), not a link of its own, matching
+ * every other platform-configuration screen living under it (onboarding
+ * fields, product categories, and Settings, which used to be its own
+ * top-level item). Starts expanded whenever the current page is one of its
+ * own children, so a direct link into e.g. /admin/settings/categories
+ * doesn't leave the group looking collapsed/unrelated. */
+/** Exact match, not startsWith — CONFIGURATION_ITEMS' hrefs are sibling leaf
+ * pages where one (/admin/settings) happens to be a literal string-prefix
+ * of another (/admin/settings/categories), so startsWith() lit up both at
+ * once on the categories page. */
+function isConfigItemActive(pathname: string | null, href: string): boolean {
+  return pathname === href;
+}
+
+function ConfigurationNavGroup({ pathname }: { pathname: string | null }) {
+  const isChildActive = CONFIGURATION_ITEMS.some((item) => isConfigItemActive(pathname, item.href));
+  const [open, setOpen] = useState(isChildActive);
+
+  const [wasChildActive, setWasChildActive] = useState(isChildActive);
+  if (isChildActive !== wasChildActive) {
+    setWasChildActive(isChildActive);
+    if (isChildActive) setOpen(true);
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+          isChildActive && !open ? "bg-ink text-white" : "text-text-muted hover:bg-mint hover:text-ink",
+        )}
+      >
+        <SettingsIcon className="size-4.5 shrink-0" aria-hidden />
+        <span className="flex-1 text-left">Configuration</span>
+        <ChevronDown className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open && (
+        <div className="mt-1 ml-4 space-y-1 border-l border-line pl-3">
+          {CONFIGURATION_ITEMS.map((item) => (
+            <AdminNavLink key={item.href} item={item} active={isConfigItemActive(pathname, item.href)} />
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 

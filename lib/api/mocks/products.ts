@@ -171,7 +171,7 @@ const CATEGORY_TEMPLATES: CategoryTemplate[] = [
   },
   {
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     brands: ["Hettich", "Memmert", "Binder", "Olympus", "Zeiss", "Leica Microsystems"],
     nameTemplates: [
       "{brand} {model} Biological Microscope",
@@ -262,7 +262,7 @@ export const mockProducts: Product[] = [
     slug: "biological-olympus-microscope-cx23",
     name: "Biological Olympus microscope Model CX23",
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     price: 2550000,
     currency: "NGN",
     imageUrl: "/marketplace/generated/microscope.jpg",

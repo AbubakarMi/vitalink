@@ -47,7 +47,7 @@ export function SiteFooter() {
             { label: "Medical Equipment", href: "/products?categorySlug=medical-equipment" },
             { label: "Scientific Tools", href: "/products?categorySlug=scientific-tools" },
             { label: "Reagents & Culture Media", href: "/products?categorySlug=reagents-culture-media" },
-            { label: "Lab Equipments", href: "/products?categorySlug=lab-equipment" },
+            { label: "Lab Equipment", href: "/products?categorySlug=lab-equipment" },
           ]}
         />
 

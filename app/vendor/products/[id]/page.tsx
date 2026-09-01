@@ -3,7 +3,14 @@ import { requireAccountType } from "@/lib/auth/dal";
 import { getVendorProductById } from "@/lib/api/vendor-products";
 import { listReviewsForProduct } from "@/lib/api/reviews";
 import { ProductDetailView } from "@/components/vendor/product-detail-view";
-import { publishProductAction, regenerateProductAction, deleteProductAction, restockProductAction, archiveProductAction } from "./actions";
+import {
+  publishProductAction,
+  regenerateProductAction,
+  deleteProductAction,
+  restockProductAction,
+  archiveProductAction,
+  unarchiveProductAction,
+} from "./actions";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -30,6 +37,7 @@ export default async function VendorProductDetailPage({ params }: PageProps) {
       onRegenerate={regenerateProductAction.bind(null, id)}
       onDelete={deleteProductAction.bind(null, id)}
       onArchive={archiveProductAction.bind(null, id)}
+      onUnarchive={unarchiveProductAction.bind(null, id)}
       onRestock={restockProductAction.bind(null, id)}
     />
   );

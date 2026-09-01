@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { cookies } from "next/headers";
 import { SignJWT, jwtVerify } from "jose";
 import { ApiError } from "../client";
-import { SESSION_COOKIES, type AccountType } from "@/lib/auth/session";
+import { SESSION_COOKIES, ROLE_CLAIM_KEY, type AccountType } from "@/lib/auth/session";
 
 /**
  * In-memory stand-in for the Zitadel-backed user store, used while
@@ -83,6 +83,13 @@ seedDemoUsersOnce();
 
 export function findMockUserByEmail(email: string): MockUserRecord | undefined {
   return usersByEmail.get(email.toLowerCase());
+}
+
+/** Every mock account, regardless of type — admin's Buyers list
+ * (lib/api/mocks/admin-store.ts) filters this down to accountType
+ * "Customer" itself, same as it already does for vendors/staff elsewhere. */
+export function listMockUsers(): MockUserRecord[] {
+  return Array.from(usersByEmail.values());
 }
 
 export function findMockUserById(userId: string): MockUserRecord | undefined {
@@ -171,9 +178,15 @@ export async function setMockSessionCookies(user: MockUserRecord): Promise<void>
     {
       sub: user.userId,
       email: user.email,
-      displayName: user.displayName,
-      accountType: user.accountType,
-      roles: user.roles,
+      // Claim keys/casing mirror the real backend's token exactly (confirmed
+      // against Infrastructure/Authentication/Services/JwtCookieService.cs
+      // and Shared/Identity/AppClaims.cs — see lib/auth/session.ts's
+      // verifyAccessToken comment) so mock sessions need zero special-casing
+      // there: "name" not "displayName", "account_type" (lowercase value)
+      // not "accountType", and roles under the full ClaimTypes.Role URI.
+      name: user.displayName,
+      account_type: user.accountType.toLowerCase(),
+      [ROLE_CLAIM_KEY]: user.roles,
     },
     ACCESS_TOKEN_TTL,
   );

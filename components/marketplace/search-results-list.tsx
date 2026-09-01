@@ -8,10 +8,10 @@ function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
-/** Bolds every case-insensitive occurrence of `query` in `text` — the same
- * "why this matched" cue a real search results page gives you, without a
- * background-highlight color that would clash with the rest of the app's
- * palette (font-weight is the highlight, not a color). */
+/** Bolds and colors every case-insensitive occurrence of `query` in `text`
+ * blue — the "why this matched" cue a real search results page gives you.
+ * Reuses the app's existing blue accent (`#5c8aff`, the marketplace stock
+ * badge) rather than introducing a new color. */
 function Highlighted({ text, query }: { text: string; query: string }) {
   const trimmed = query.trim();
   if (!trimmed) return <>{text}</>;
@@ -20,7 +20,7 @@ function Highlighted({ text, query }: { text: string; query: string }) {
     <>
       {parts.map((part, i) =>
         part.toLowerCase() === trimmed.toLowerCase() ? (
-          <strong key={i} className="font-bold text-ink">
+          <strong key={i} className="font-bold text-[#5c8aff]">
             {part}
           </strong>
         ) : (

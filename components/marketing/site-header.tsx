@@ -1,6 +1,7 @@
+import { Suspense } from "react";
 import Link from "next/link";
-import { buttonVariants } from "@/components/ui/button";
 import { SearchBar } from "@/components/marketing/search-bar";
+import { AccountSlot, AccountSlotFallback } from "@/components/marketing/account-slot";
 
 /**
  * Public nav — restyled to match the client's Ezerhealthcare/HealthBank EHR
@@ -8,6 +9,15 @@ import { SearchBar } from "@/components/marketing/search-bar";
  * (not full-pill) radius. The hero directly below stays the dark
  * ECG-trace hero as-is — this is a deliberate light-nav-over-dark-hero
  * junction, not a mismatch.
+ *
+ * The account slot (Login/Sign Up vs. the real account menu) is
+ * components/marketing/account-slot.tsx, shared with MarketplaceHeader —
+ * this used to hardcode Login/Sign Up unconditionally, so a signed-in
+ * buyer, vendor, or admin browsing the public homepage saw guest-only nav
+ * even though they were already authenticated. Wrapped in its own Suspense
+ * boundary (not making this whole header async) so the rest of the
+ * homepage keeps its static shell under Cache Components/PPR — only the
+ * account slot's cookies() read is dynamic.
  */
 export function SiteHeader() {
   return (
@@ -22,18 +32,9 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-6 justify-self-end">
-          <Link href="/login" className="text-sm whitespace-nowrap text-ink-soft hover:text-ink">
-            Login
-          </Link>
-
-          <Link
-            href="/register"
-            className={buttonVariants({
-              className: "rounded-lg bg-ink px-4 font-medium whitespace-nowrap !text-white hover:bg-ink/85 sm:px-6",
-            })}
-          >
-            Sign Up
-          </Link>
+          <Suspense fallback={<AccountSlotFallback />}>
+            <AccountSlot />
+          </Suspense>
         </div>
       </div>
     </header>

@@ -65,6 +65,11 @@ const ProductSchema = z.object({
    * step and on a draft product's detail view — distinct from technicalSpecs/
    * includedAccessories/clinicalUseCases, which are the published-page tabs. */
   usageTutorial: z.array(z.object({ title: z.string(), body: z.string() })).optional(),
+  /** Set when an admin rejects this product (lib/api/admin/products.ts's
+   * rejectAdminProduct) so the vendor sees why on their own product detail
+   * page (components/vendor/product-detail-view.tsx) and can fix it before
+   * resubmitting. */
+  rejectionReason: z.string().nullable().optional(),
 });
 export type Product = z.infer<typeof ProductSchema>;
 export { ProductSchema };
@@ -93,7 +98,19 @@ export interface ListProductsParams {
 export async function listProducts(params: ListProductsParams = {}): Promise<Product[]> {
   "use cache";
   if (SOURCE === "live") {
-    const { data } = await apiClient.get<unknown>("/catalog/products", { params });
+    // TODO before this can actually work: the real route is
+    // "marketplace/products" (fixed below — was "/catalog/products", a wrong
+    // guess), but that's not sufficient on its own. The backend's catalog is
+    // Product + Offer as two related entities (one product, many vendor
+    // offers at different price/stock/condition) — GetMarketplaceProducts
+    // returns MarketplaceProductCard (productId/primaryImageUrl/brandName/
+    // categoryName/startingPrice/offerCount/…), not this flat Product shape,
+    // and takes brandId/categoryId (GUIDs, resolved via marketplace/brands
+    // and marketplace/categories) + term/pageNumber/sort params, not the
+    // categorySlug/brand/search/page/sort this function sends. Needs real
+    // product/UX design work, not a param rename — see
+    // docs/BACKEND_INTEGRATION_GUIDE.md §2.5 before flipping this live.
+    const { data } = await apiClient.get<unknown>("/marketplace/products", { params });
     return z.array(ProductSchema).parse(data);
   }
   return z.array(ProductSchema).parse(filterMockProducts(params));
@@ -146,7 +163,10 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   "use cache";
   if (SOURCE === "live") {
-    const { data } = await apiClient.get<unknown>(`/catalog/products/${slug}`);
+    // Real route is "marketplace/products/slug/{slug}" (MarketplaceEndpoints.
+    // GetProductBySlug) — note the "/slug/" segment, not the slug appended
+    // directly. Same response-shape caveat as listProducts() above.
+    const { data } = await apiClient.get<unknown>(`/marketplace/products/slug/${slug}`);
     return data ? ProductSchema.parse(data) : null;
   }
   const found = mockProducts.find((product) => product.slug === slug);

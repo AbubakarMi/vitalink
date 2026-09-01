@@ -2,10 +2,12 @@
 
 import { useState, useTransition } from "react";
 import { approveStaffAction, suspendStaffAction } from "@/app/admin/actions";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 
 /** Approve/Suspend controls for one row on /admin/users — new invites need
  * explicit review before they're active (see lib/api/mocks/admin-store.ts's
- * approvalStatus comment). */
+ * approvalStatus comment). Suspend is gated behind a warning modal — it
+ * locks the account out immediately, unlike Approve which only unblocks. */
 export function StaffModerationActions({
   staffId,
   pendingReview,
@@ -28,9 +30,12 @@ export function StaffModerationActions({
 
   function suspend() {
     setError(null);
-    startTransition(async () => {
-      const result = await suspendStaffAction(staffId);
-      if (result.error) setError(result.error);
+    return new Promise<void>((resolve) => {
+      startTransition(async () => {
+        const result = await suspendStaffAction(staffId);
+        if (result.error) setError(result.error);
+        resolve();
+      });
     });
   }
 
@@ -56,14 +61,21 @@ export function StaffModerationActions({
 
   return (
     <div>
-      <button
-        type="button"
-        onClick={suspend}
-        disabled={pending}
-        className="text-xs font-medium text-[#c0392b] hover:underline disabled:opacity-50"
-      >
-        {pending ? "Suspending…" : "Suspend"}
-      </button>
+      <ConfirmActionButton
+        onConfirm={suspend}
+        title="Suspend this staff account?"
+        description="They'll immediately lose access to the admin dashboard, and there's currently no way to reactivate a suspended account from here."
+        confirmLabel="Yes, suspend"
+        trigger={
+          <button
+            type="button"
+            disabled={pending}
+            className="text-xs font-medium text-[#c0392b] hover:underline disabled:opacity-50"
+          >
+            {pending ? "Suspending…" : "Suspend"}
+          </button>
+        }
+      />
       {error && <p className="mt-1 text-xs text-[#c0392b]">{error}</p>}
     </div>
   );

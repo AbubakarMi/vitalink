@@ -1,10 +1,10 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowLeft, MapPin, Truck, ChevronRight } from "lucide-react";
 import { requireAccountType } from "@/lib/auth/dal";
 import { getAdminProductDetails } from "@/lib/api/admin/products";
 import { StatusPill } from "@/components/admin/status-pill";
 import { ProductModerationActions } from "@/components/admin/product-moderation-actions";
+import { ProductImageGallery } from "@/components/admin/product-image-gallery";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -51,13 +51,7 @@ export default async function AdminProductDetailPage({ params }: { params: Promi
        * own height. */}
       <div className="rounded-2xl border border-line bg-white p-6">
         <div className="flex flex-col gap-6 sm:flex-row">
-          <div className="relative aspect-square w-full shrink-0 rounded-xl bg-surface-muted sm:w-56">
-            {product.imageUrl ? (
-              <Image src={product.imageUrl} alt="" fill sizes="224px" className="object-contain p-6" />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-text-muted">No image</div>
-            )}
-          </div>
+          <ProductImageGallery product={product} />
           <div className="flex min-w-0 flex-1 flex-col">
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill status={product.status} />

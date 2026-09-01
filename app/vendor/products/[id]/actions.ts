@@ -8,6 +8,7 @@ import {
   deleteVendorProduct,
   restockVendorProduct,
   updateVendorProductStatus,
+  unarchiveVendorProduct,
 } from "@/lib/api/vendor-products";
 
 export async function publishProductAction(productId: string) {
@@ -40,4 +41,13 @@ export async function archiveProductAction(productId: string) {
   await updateVendorProductStatus(productId, "Archived");
   revalidatePath(`/vendor/products/${productId}`);
   revalidatePath("/vendor/products");
+  revalidatePath("/vendor/products/archive");
+}
+
+export async function unarchiveProductAction(productId: string) {
+  await unarchiveVendorProduct(productId);
+  revalidatePath(`/vendor/products/${productId}`);
+  revalidatePath("/vendor/products");
+  revalidatePath("/vendor/products/archive");
+  revalidatePath("/vendor/dashboard");
 }

@@ -21,7 +21,8 @@ function stageIndex(status: BuyerOrderStatus): number {
 /** No order-detail mockup was supplied for the buyer side either (same gap
  * as the vendor order detail) — designed to match the rest of the system. */
 export default async function BuyerOrderDetailPage({ params }: PageProps) {
-  await requireAccountType("buyer", "/buyer/orders");
+  // ["Vendor"]: see app/buyer/orders/page.tsx's comment.
+  await requireAccountType("buyer", "/buyer/orders", ["Vendor"]);
   const { id } = await params;
   const order = await getBuyerOrderById(id);
   if (!order) {

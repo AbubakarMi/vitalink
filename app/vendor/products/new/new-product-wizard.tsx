@@ -42,7 +42,7 @@ const CATEGORIES = [
   { slug: "medical-equipment", label: "Medical Equipment", hint: "Medical & surgical devices", icon: Boxes },
   { slug: "scientific-tools", label: "Scientific Tools", hint: "Instruments & apparatus", icon: Microscope },
   { slug: "reagents-culture-media", label: "Reagents & Culture Media", hint: "Clinical & lab reagents", icon: TestTube },
-  { slug: "lab-equipment", label: "Lab Equipments", hint: "Benchtop & general lab gear", icon: FlaskConical },
+  { slug: "lab-equipment", label: "Lab Equipment", hint: "Benchtop & general lab gear", icon: FlaskConical },
 ] as const;
 
 interface IdentificationData {
@@ -91,7 +91,21 @@ export function NewProductWizard() {
 
   const categoryLabel = CATEGORIES.find((c) => c.slug === categorySlug)?.label ?? categorySlug;
 
-  function handleImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
+  /** The primary-image slot always replaces whichever image was primary
+   * before (a product has exactly one) — every other upload goes through
+   * handleSupportingImagesChange instead. */
+  function handlePrimaryImageChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (file) {
+      setImages((prev) => [
+        ...prev.map((img) => ({ ...img, isPrimary: false })),
+        { id: `${Date.now()}`, file, previewUrl: URL.createObjectURL(file), isPrimary: true },
+      ]);
+    }
+    e.target.value = ""; // allow re-selecting the same file
+  }
+
+  function handleSupportingImagesChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []);
     if (files.length === 0) return;
     setImages((prev) => [
@@ -100,7 +114,10 @@ export function NewProductWizard() {
         id: `${Date.now()}-${i}`,
         file,
         previewUrl: URL.createObjectURL(file),
-        isPrimary: prev.length === 0 && i === 0, // first image uploaded is primary by default
+        // No primary slot filled yet and this is the very first upload of
+        // any kind — fall back to treating it as primary so the product
+        // always has one once any image exists.
+        isPrimary: prev.length === 0 && i === 0,
       })),
     ]);
     e.target.value = ""; // allow re-selecting the same file(s)
@@ -121,6 +138,7 @@ export function NewProductWizard() {
   }
 
   const primaryImage = images.find((img) => img.isPrimary) ?? images[0] ?? null;
+  const supportingImages = images.filter((img) => img.id !== primaryImage?.id);
 
   function handleIdentificationSubmit(formData: FormData) {
     const data: IdentificationData = {
@@ -259,32 +277,53 @@ export function NewProductWizard() {
           </div>
 
           <div>
-            <label className="flex cursor-pointer flex-col items-center gap-3 rounded-2xl border border-dashed border-line px-6 py-10 text-center hover:border-ink/40">
-              <UploadCloud className="size-6 text-text-muted" aria-hidden />
-              <span className="text-sm font-semibold text-ink">Upload Product Images</span>
-              <span className="text-xs text-text-muted">Add as many as you like — pick one as the primary image</span>
-              <span className="rounded-lg border border-line px-4 py-2 text-xs font-medium text-ink-soft">Browse Files</span>
-              <input type="file" accept="image/*" multiple className="hidden" onChange={handleImagesChange} />
-            </label>
+            <p className="text-sm font-medium text-ink-soft">Primary Image</p>
+            <p className="mt-1 text-xs text-text-muted">
+              This is the image buyers see first — on the marketplace grid, search results, and at the top of the
+              product page. Use a clear, high-quality photo.
+            </p>
 
-            {images.length > 0 && (
-              <div className="mt-4 grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {images.map((img) => (
-                  <div
-                    key={img.id}
-                    className={cn(
-                      "group relative aspect-square overflow-hidden rounded-xl border-2",
-                      img.isPrimary ? "border-ink" : "border-line",
-                    )}
-                  >
+            {primaryImage ? (
+              <div className="group relative mt-3 size-40 overflow-hidden rounded-2xl border-2 border-ink">
+                {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset */}
+                <img src={primaryImage.previewUrl} alt="" className="size-full object-cover" />
+                <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-ink/60 text-xs font-medium text-white opacity-0 transition-opacity group-hover:opacity-100">
+                  Change
+                  <input type="file" accept="image/*" className="hidden" onChange={handlePrimaryImageChange} />
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeImage(primaryImage.id)}
+                  aria-label="Remove primary image"
+                  className="absolute top-1.5 right-1.5 flex size-6 items-center justify-center rounded-full bg-ink/70 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                >
+                  <X className="size-3.5" aria-hidden />
+                </button>
+              </div>
+            ) : (
+              <label className="mt-3 flex cursor-pointer flex-col items-center gap-2 rounded-2xl border border-dashed border-line px-6 py-8 text-center hover:border-ink/40">
+                <UploadCloud className="size-6 text-text-muted" aria-hidden />
+                <span className="text-sm font-semibold text-ink">Upload Primary Image</span>
+                <span className="rounded-lg border border-line px-4 py-2 text-xs font-medium text-ink-soft">Browse Files</span>
+                <input type="file" accept="image/*" className="hidden" onChange={handlePrimaryImageChange} />
+              </label>
+            )}
+          </div>
+
+          <div>
+            <p className="text-sm font-medium text-ink-soft">
+              Supporting Images <span className="text-text-muted">(optional)</span>
+            </p>
+            <p className="mt-1 text-xs text-text-muted">
+              Extra angles, accessories, or close-up detail shots — shown when a buyer opens the full product page.
+            </p>
+
+            {supportingImages.length > 0 && (
+              <div className="mt-3 grid grid-cols-3 gap-3 sm:grid-cols-4">
+                {supportingImages.map((img) => (
+                  <div key={img.id} className="group relative aspect-square overflow-hidden rounded-xl border border-line">
                     {/* eslint-disable-next-line @next/next/no-img-element -- local blob: preview, not an optimizable remote asset */}
                     <img src={img.previewUrl} alt="" className="size-full object-cover" />
-                    {img.isPrimary && (
-                      <span className="absolute top-1.5 left-1.5 flex items-center gap-1 rounded-full bg-ink px-2 py-0.5 text-[10px] font-medium text-white">
-                        <Star className="size-2.5 fill-current" aria-hidden />
-                        Primary
-                      </span>
-                    )}
                     <button
                       type="button"
                       onClick={() => removeImage(img.id)}
@@ -293,19 +332,24 @@ export function NewProductWizard() {
                     >
                       <X className="size-3.5" aria-hidden />
                     </button>
-                    {!img.isPrimary && (
-                      <button
-                        type="button"
-                        onClick={() => setPrimaryImage(img.id)}
-                        className="absolute inset-x-0 bottom-0 bg-ink/70 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
-                      >
-                        Set as primary
-                      </button>
-                    )}
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryImage(img.id)}
+                      className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-1 bg-ink/70 py-1 text-[10px] font-medium text-white opacity-0 transition-opacity group-hover:opacity-100"
+                    >
+                      <Star className="size-2.5" aria-hidden />
+                      Set as primary
+                    </button>
                   </div>
                 ))}
               </div>
             )}
+
+            <label className="mt-3 flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-line px-4 py-3 text-center hover:border-ink/40">
+              <UploadCloud className="size-4 text-text-muted" aria-hidden />
+              <span className="text-sm font-medium text-ink-soft">Add supporting images</span>
+              <input type="file" accept="image/*" multiple className="hidden" onChange={handleSupportingImagesChange} />
+            </label>
           </div>
 
           <div className="flex justify-end">
@@ -449,8 +493,10 @@ export function NewProductWizard() {
       {step === "verification" && generated && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-semibold text-ink">Step 4: Verify and Publish</h2>
-            <p className="mt-1 text-sm text-text-muted">Confirm the information for your product and publish it to the marketplace.</p>
+            <h2 className="text-xl font-semibold text-ink">Step 4: Verify and Submit</h2>
+            <p className="mt-1 text-sm text-text-muted">
+              Confirm the information for your product and submit it for admin review — it goes live once approved.
+            </p>
           </div>
 
           <div className="grid grid-cols-1 gap-8 lg:grid-cols-[280px_1fr]">
@@ -539,7 +585,7 @@ export function NewProductWizard() {
               className="inline-flex items-center gap-2 rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-60"
             >
               <CheckCheck className="size-4" aria-hidden />
-              {pending ? "Publishing…" : "Publish to Marketplace"}
+              {pending ? "Submitting…" : "Submit for Review"}
             </button>
           </div>
         </div>

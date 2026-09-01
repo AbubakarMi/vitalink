@@ -1,9 +1,12 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
 import { ApiError } from "../client";
-import { findMockUserByEmail } from "./auth-store";
+import { findMockUserByEmail, findMockUserById, listMockUsers } from "./auth-store";
 import { mockProducts } from "./products";
+import { getAllVendorProducts, updateVendorProduct } from "./vendor-inventory-store";
+import { getBuyerOrders, type BuyerOrder } from "./buyer-orders-store";
 import type { DocumentType } from "../vendor-profile";
+import type { Product } from "../products";
 
 /**
  * In-memory stand-in for the admin/Staff backend (Vendors, Staff, Roles,
@@ -38,7 +41,8 @@ const globalForAdminMock = globalThis as unknown as {
   __vitalinkMockOrders?: MockAdminOrder[];
   __vitalinkMockTransactions?: MockAdminTransaction[];
   __vitalinkMockSettlements?: MockSettlement[];
-  __vitalinkMockDocumentRequirements?: MockDocumentRequirement[];
+  __vitalinkMockDocumentRequirements?: MockOnboardingField[];
+  __vitalinkMockProductCategories?: MockProductCategory[];
 };
 
 const roles: MockRole[] =
@@ -455,6 +459,112 @@ export function listMockVendorDocuments(vendorId: string) {
   });
 }
 
+// ---- Product Categories (Configuration module) — the taxonomy admin
+// assigns products/vendors into. Separate from lib/api/mocks/categories.ts's
+// static buyer-facing list (that one's a fixture with no read/write path of
+// its own yet — see its comment on why no account type can read the real
+// category endpoint today); this is the admin CRUD side, matching the real
+// backend's admin/product-categories endpoints (Activate/Deactivate rather
+// than delete — a category never gets removed outright once products may
+// reference it). ----
+
+export interface MockProductCategory {
+  id: string;
+  name: string;
+  slug: string;
+  description: string;
+  isActive: boolean;
+  createdAt: string;
+}
+
+function slugifyCategoryName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "");
+}
+
+function seedProductCategoriesOnce(): MockProductCategory[] {
+  const existing = globalForAdminMock.__vitalinkMockProductCategories;
+  if (existing) return existing;
+
+  const seeded: MockProductCategory[] = [
+    {
+      id: "cat_medical-equipment",
+      name: "Medical Equipment",
+      slug: "medical-equipment",
+      description: "Medical & surgical devices used directly in patient care.",
+      isActive: true,
+      createdAt: "2026-01-05T09:00:00Z",
+    },
+    {
+      id: "cat_scientific-tools",
+      name: "Scientific Tools",
+      slug: "scientific-tools",
+      description: "Instruments and apparatus for scientific/laboratory work.",
+      isActive: true,
+      createdAt: "2026-01-05T09:00:00Z",
+    },
+    {
+      id: "cat_reagents-culture-media",
+      name: "Reagents & Culture Media",
+      slug: "reagents-culture-media",
+      description: "Clinical and lab reagents, culture media, and related consumables.",
+      isActive: true,
+      createdAt: "2026-01-05T09:00:00Z",
+    },
+    {
+      id: "cat_lab-equipment",
+      name: "Lab Equipment",
+      slug: "lab-equipment",
+      description: "Benchtop and general laboratory equipment.",
+      isActive: true,
+      createdAt: "2026-01-05T09:00:00Z",
+    },
+  ];
+  globalForAdminMock.__vitalinkMockProductCategories = seeded;
+  return seeded;
+}
+
+export function listMockProductCategories(): MockProductCategory[] {
+  return seedProductCategoriesOnce();
+}
+
+export interface CreateMockProductCategoryInput {
+  name: string;
+  description: string;
+}
+
+export function createMockProductCategory(input: CreateMockProductCategoryInput): MockProductCategory {
+  const categories = seedProductCategoriesOnce();
+  const baseSlug = slugifyCategoryName(input.name) || "category";
+  let slug = baseSlug;
+  let suffix = 1;
+  while (categories.some((c) => c.slug === slug)) {
+    suffix += 1;
+    slug = `${baseSlug}-${suffix}`;
+  }
+  const category: MockProductCategory = {
+    id: `cat_${randomUUID()}`,
+    name: input.name,
+    slug,
+    description: input.description,
+    isActive: true,
+    createdAt: new Date().toISOString(),
+  };
+  categories.push(category);
+  return category;
+}
+
+export function setMockProductCategoryActive(id: string, isActive: boolean): MockProductCategory {
+  const category = seedProductCategoriesOnce().find((c) => c.id === id);
+  if (!category) {
+    throw new ApiError(404, `Unknown product category "${id}".`);
+  }
+  category.isActive = isActive;
+  return category;
+}
+
 // ---- Products (Global Inventory) — derived from the same catalog buyers
 // browse (lib/api/mocks/products.ts), reshaped for the admin moderation
 // table rather than a second, disconnected product list. ----
@@ -473,6 +583,7 @@ export interface MockAdminProduct {
   name: string;
   sku: string | null;
   imageUrl: string | null;
+  images: { url: string; isPrimary: boolean }[] | null;
   price: number;
   originalPrice: number | null;
   stock: number | null;
@@ -494,7 +605,13 @@ export interface MockAdminProduct {
 }
 
 let cachedAdminProducts: MockAdminProduct[] | null = null;
-function allMockAdminProducts(): MockAdminProduct[] {
+/** The static demo catalog only — cached once since mockProducts never
+ * changes. Vendor-submitted products (real ones, from the New Product
+ * wizard) are layered on top live by allMockAdminProducts() below, not
+ * folded into this cache, since they can arrive at any time and their own
+ * status/rejectionReason needs to keep reading from the vendor's actual
+ * record rather than a frozen snapshot. */
+function cachedCatalogAdminProducts(): MockAdminProduct[] {
   if (cachedAdminProducts) return cachedAdminProducts;
   const vendorIdByName = new Map(seedVendorsOnce().map((v) => [v.businessLegalName, v.id]));
   cachedAdminProducts = mockProducts.map((product, i) => {
@@ -504,6 +621,7 @@ function allMockAdminProducts(): MockAdminProduct[] {
       name: product.name,
       sku: product.brandSku ?? null,
       imageUrl: product.imageUrl,
+      images: null,
       price: product.price,
       originalPrice: product.originalPrice ?? null,
       stock: product.stockCount ?? null,
@@ -525,6 +643,47 @@ function allMockAdminProducts(): MockAdminProduct[] {
     };
   });
   return cachedAdminProducts;
+}
+
+function mapVendorProductToAdmin(product: Product): MockAdminProduct {
+  return {
+    id: product.id,
+    name: product.name,
+    sku: product.sku ?? product.brandSku ?? null,
+    imageUrl: product.imageUrl,
+    images: product.images ?? null,
+    price: product.price,
+    originalPrice: product.originalPrice ?? null,
+    stock: product.stockCount ?? null,
+    lowStockThreshold: product.lowStockThreshold ?? null,
+    vendorId: product.vendorId ?? null,
+    vendorName: null, // resolved lazily below where the vendor list is in scope
+    brand: product.brand ?? null,
+    categoryLabel: product.categoryLabel ?? null,
+    status: product.status ?? "PendingReview",
+    createdAt: null,
+    shortDescription: product.shortDescription ?? null,
+    manufacturedIn: product.manufacturedIn ?? null,
+    badge: product.badge ?? null,
+    freeDelivery: product.freeDelivery ?? false,
+    technicalSpecs: product.technicalSpecs ?? [],
+    includedAccessories: product.includedAccessories ?? [],
+    clinicalUseCases: product.clinicalUseCases ?? [],
+    rejectionReason: product.rejectionReason ?? null,
+  };
+}
+
+/** The static catalog plus every real vendor-submitted product (New Product
+ * wizard), recombined fresh on every call — see cachedCatalogAdminProducts()'s
+ * comment on why the vendor half isn't baked into that same cache. */
+function allMockAdminProducts(): MockAdminProduct[] {
+  const vendorNameById = new Map(seedVendorsOnce().map((v) => [v.id, v.businessLegalName]));
+  const vendorSubmitted = getAllVendorProducts().map((product) => {
+    const mapped = mapVendorProductToAdmin(product);
+    mapped.vendorName = (mapped.vendorId && vendorNameById.get(mapped.vendorId)) ?? null;
+    return mapped;
+  });
+  return [...cachedCatalogAdminProducts(), ...vendorSubmitted];
 }
 
 export interface ListMockAdminProductsParams {
@@ -560,16 +719,34 @@ export function getMockAdminProductDetails(productId: string): MockAdminProduct 
   return product;
 }
 
+/** Static-catalog products are mutated directly on the cached array (no
+ * other owner of that data). A real vendor-submitted product's status lives
+ * on the vendor's own inventory record instead (updateVendorProduct) — that
+ * way approving/rejecting it here is also what the vendor's own product
+ * page reflects, one source of truth rather than a disconnected admin copy. */
+function applyModerationDecision(productId: string, status: "Active" | "Rejected", rejectionReason: string | null): void {
+  const cached = cachedCatalogAdminProducts().find((p) => p.id === productId);
+  if (cached) {
+    cached.status = status;
+    cached.rejectionReason = rejectionReason;
+    return;
+  }
+  const vendorProduct = getAllVendorProducts().find((p) => p.id === productId);
+  if (!vendorProduct?.vendorId) {
+    throw new ApiError(404, "Product not found.");
+  }
+  updateVendorProduct(vendorProduct.vendorId, productId, {
+    status: status === "Active" ? (vendorProduct.stockCount ?? 0) > 0 ? "Active" : "OutOfStock" : "Rejected",
+    rejectionReason,
+  });
+}
+
 export function approveMockAdminProduct(productId: string): void {
-  const product = getMockAdminProductDetails(productId);
-  product.status = "Active";
-  product.rejectionReason = null;
+  applyModerationDecision(productId, "Active", null);
 }
 
 export function rejectMockAdminProduct(productId: string, reason: string): void {
-  const product = getMockAdminProductDetails(productId);
-  product.status = "Rejected";
-  product.rejectionReason = reason;
+  applyModerationDecision(productId, "Rejected", reason);
 }
 
 // ---- Audit log ----
@@ -953,33 +1130,44 @@ export function processMockBulkTransfer(vendorIds: string[]): { transferred: num
   return { transferred, total };
 }
 
-// ---- Document requirements (vendor onboarding config) — lets Staff choose
-// which compliance documents the vendor-apply wizard asks for, and whether
-// each is required or optional, instead of the fixed set that was previously
-// hardcoded straight into vendor-apply-wizard.tsx. Keyed by a stable slot id
-// rather than raw DocumentType because the wizard's "Eligibility Status"
-// block is one requirement backed by a choice of three DocumentType values
+// ---- Onboarding fields (vendor onboarding config) — lets Staff define what
+// the vendor-apply wizard asks for during onboarding: text fields, number
+// fields, or document uploads, each with its own required/optional flag and
+// a description the vendor sees. Started as a fixed set of 3 hardcoded
+// documents (still seeded below, now just the "type": "document" case of
+// this broader model) — admin can now also add/remove custom fields of any
+// type, not just toggle the built-in ones. Keyed by a stable slug rather
+// than raw DocumentType because the wizard's "Eligibility Status" field is
+// one requirement backed by a choice of three DocumentType values
 // (FdaRegistration/NafdacRegistration/Other radio group). ----
 
-export interface MockDocumentRequirement {
+export type OnboardingFieldType = "text" | "number" | "document";
+
+export interface MockOnboardingField {
   key: string;
   label: string;
   description: string;
-  appliesTo: "Manufacturer" | "Distributor";
-  documentTypes: DocumentType[];
+  type: OnboardingFieldType;
+  appliesTo: "Manufacturer" | "Distributor" | "Both";
   required: boolean;
   enabled: boolean;
+  /** Only meaningful when type === "document" — which real DocumentType
+   * value(s) this maps to for the actual upload flow. A custom
+   * admin-created document field defaults to "Other" (see
+   * createMockOnboardingField) since it has no dedicated backend type. */
+  documentTypes?: DocumentType[];
 }
 
-function seedDocumentRequirementsOnce(): MockDocumentRequirement[] {
+function seedOnboardingFieldsOnce(): MockOnboardingField[] {
   const existing = globalForAdminMock.__vitalinkMockDocumentRequirements;
   if (existing) return existing;
 
-  const seeded: MockDocumentRequirement[] = [
+  const seeded: MockOnboardingField[] = [
     {
       key: "iso-certification",
       label: "ISO 13485 Certification",
       description: "Proof of quality management system for medical device design and manufacture.",
+      type: "document",
       appliesTo: "Manufacturer",
       documentTypes: ["IsoCertification"],
       required: true,
@@ -989,6 +1177,7 @@ function seedDocumentRequirementsOnce(): MockDocumentRequirement[] {
       key: "eligibility-document",
       label: "Eligibility Status (FDA / NAFDAC / Other)",
       description: "Regulatory eligibility proof — the vendor picks one of FDA, NAFDAC, or Other.",
+      type: "document",
       appliesTo: "Manufacturer",
       documentTypes: ["FdaRegistration", "NafdacRegistration", "Other"],
       required: true,
@@ -998,6 +1187,7 @@ function seedDocumentRequirementsOnce(): MockDocumentRequirement[] {
       key: "business-registration",
       label: "Business Registration",
       description: "Proof the entity is a legally registered distributor/supplier.",
+      type: "document",
       appliesTo: "Distributor",
       documentTypes: ["BusinessRegistration"],
       required: true,
@@ -1008,20 +1198,125 @@ function seedDocumentRequirementsOnce(): MockDocumentRequirement[] {
   return seeded;
 }
 
-export function listMockDocumentRequirements(): MockDocumentRequirement[] {
-  return seedDocumentRequirementsOnce();
+export function listMockOnboardingFields(): MockOnboardingField[] {
+  return seedOnboardingFieldsOnce();
 }
 
-export function updateMockDocumentRequirement(
+export function updateMockOnboardingField(
   key: string,
   patch: { required?: boolean; enabled?: boolean },
-): MockDocumentRequirement {
-  const requirements = seedDocumentRequirementsOnce();
-  const requirement = requirements.find((r) => r.key === key);
-  if (!requirement) {
-    throw new ApiError(404, `Unknown document requirement "${key}".`);
+): MockOnboardingField {
+  const fields = seedOnboardingFieldsOnce();
+  const field = fields.find((f) => f.key === key);
+  if (!field) {
+    throw new ApiError(404, `Unknown onboarding field "${key}".`);
   }
-  if (patch.required !== undefined) requirement.required = patch.required;
-  if (patch.enabled !== undefined) requirement.enabled = patch.enabled;
-  return requirement;
+  if (patch.required !== undefined) field.required = patch.required;
+  if (patch.enabled !== undefined) field.enabled = patch.enabled;
+  return field;
+}
+
+export interface CreateMockOnboardingFieldInput {
+  label: string;
+  description: string;
+  type: OnboardingFieldType;
+  appliesTo: "Manufacturer" | "Distributor" | "Both";
+  required: boolean;
+}
+
+export function createMockOnboardingField(input: CreateMockOnboardingFieldInput): MockOnboardingField {
+  const fields = seedOnboardingFieldsOnce();
+  const baseKey = input.label
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/(^-|-$)/g, "") || "field";
+  let key = baseKey;
+  let suffix = 1;
+  while (fields.some((f) => f.key === key)) {
+    suffix += 1;
+    key = `${baseKey}-${suffix}`;
+  }
+  const field: MockOnboardingField = {
+    key,
+    label: input.label,
+    description: input.description,
+    type: input.type,
+    appliesTo: input.appliesTo,
+    required: input.required,
+    enabled: true,
+    documentTypes: input.type === "document" ? ["Other"] : undefined,
+  };
+  fields.push(field);
+  return field;
+}
+
+export function deleteMockOnboardingField(key: string): void {
+  const fields = seedOnboardingFieldsOnce();
+  const index = fields.findIndex((f) => f.key === key);
+  if (index === -1) {
+    throw new ApiError(404, `Unknown onboarding field "${key}".`);
+  }
+  fields.splice(index, 1);
+}
+
+// ---------------------------------------------------------------------------
+// Buyers — admin's read-only view of Customer accounts. No backend endpoint
+// exists for this at all (Administration/* has no Customers listing — the
+// real `users/customers/*` routes are the buyer's own self-service profile,
+// not an admin surface, per docs/BACKEND_INTEGRATION_GUIDE.md §3), so this is
+// mock-only for the foreseeable future, same category as admin/orders.ts.
+// Sourced by joining auth-store's account records with each buyer's own
+// order history (buyer-orders-store) rather than keeping a separate buyer
+// record — a buyer *is* just a Customer-type user with orders.
+// ---------------------------------------------------------------------------
+
+export interface MockAdminBuyer {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  orderCount: number;
+  totalSpent: number;
+  lastOrderAt: string | null;
+}
+
+function buyerOrdersFor(userId: string): BuyerOrder[] {
+  return getBuyerOrders(userId, mockProducts);
+}
+
+export function listMockAdminBuyers(): MockAdminBuyer[] {
+  return listMockUsers()
+    .filter((user) => user.accountType === "Customer")
+    .map((user) => {
+      const orders = buyerOrdersFor(user.userId);
+      return {
+        id: user.userId,
+        name: user.displayName,
+        email: user.email,
+        phone: user.phone ?? null,
+        orderCount: orders.length,
+        totalSpent: orders.reduce((sum, order) => sum + order.total, 0),
+        lastOrderAt: orders[0]?.placedAt ?? null,
+      };
+    });
+}
+
+export function getMockAdminBuyerDetails(buyerId: string): { buyer: MockAdminBuyer; orders: BuyerOrder[] } | null {
+  const user = findMockUserById(buyerId);
+  if (!user || user.accountType !== "Customer") {
+    return null;
+  }
+  const orders = buyerOrdersFor(user.userId);
+  return {
+    buyer: {
+      id: user.userId,
+      name: user.displayName,
+      email: user.email,
+      phone: user.phone ?? null,
+      orderCount: orders.length,
+      totalSpent: orders.reduce((sum, order) => sum + order.total, 0),
+      lastOrderAt: orders[0]?.placedAt ?? null,
+    },
+    orders,
+  };
 }

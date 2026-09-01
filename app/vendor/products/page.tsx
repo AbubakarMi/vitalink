@@ -6,6 +6,7 @@ import { listProductsForVendor, getVendorProductStats } from "@/lib/api/vendor-p
 import type { Product, VendorProductStatus } from "@/lib/api/products";
 import { StatusPill } from "@/components/vendor/status-pill";
 import { VendorTableShell, VendorTableHead, VendorTableHeadCell, VendorTableRow, VendorTableCell, VendorTableEmpty } from "@/components/vendor/vendor-table";
+import { ArchiveConfirmButton } from "@/components/vendor/archive-confirm-button";
 import { archiveProductAction } from "./actions";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
@@ -180,11 +181,7 @@ function ProductRow({ product }: { product: Product }) {
             Edit
           </Link>
           {product.status !== "Archived" && (
-            <form action={archiveProductAction.bind(null, product.id)}>
-              <button type="submit" className="font-medium text-text-muted hover:text-[#c0392b]">
-                Archive
-              </button>
-            </form>
+            <ArchiveConfirmButton productName={product.name} onArchive={archiveProductAction.bind(null, product.id)} variant="text" />
           )}
         </div>
       </VendorTableCell>

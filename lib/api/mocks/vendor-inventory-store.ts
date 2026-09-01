@@ -98,7 +98,7 @@ const SEED_PRODUCTS: SeedProduct[] = [
     brand: "Tuttnauer",
     brandSku: "3870EA",
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     price: 890000,
     stockCount: 9,
     lowStockThreshold: 5,
@@ -112,7 +112,7 @@ const SEED_PRODUCTS: SeedProduct[] = [
     brand: "Eppendorf",
     brandSku: "5920 R",
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     price: 2450000,
     stockCount: 4,
     lowStockThreshold: 5,
@@ -154,7 +154,7 @@ const SEED_PRODUCTS: SeedProduct[] = [
     brand: "IKA",
     brandSku: "C-MAG HS 7",
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     price: 185000,
     stockCount: 32,
     lowStockThreshold: 10,
@@ -168,7 +168,7 @@ const SEED_PRODUCTS: SeedProduct[] = [
     brand: "Thermo Fisher Scientific",
     brandSku: "Heracell VIOS 160i",
     categorySlug: "lab-equipment",
-    categoryLabel: "Lab Equipments",
+    categoryLabel: "Lab Equipment",
     price: 3200000,
     stockCount: 2,
     lowStockThreshold: 3,
@@ -296,6 +296,17 @@ export function getVendorInventory(vendorId: string): Product[] {
 
 export function getVendorProduct(vendorId: string, productId: string): Product | undefined {
   return getVendorInventory(vendorId).find((product) => product.id === productId);
+}
+
+/** Every product across every vendor whose inventory has actually been
+ * touched this session (created a product, or just loaded their own
+ * products page, which lazily seeds it) — used by the admin Global
+ * Inventory queue (lib/api/mocks/admin-store.ts) so a vendor's real
+ * submissions (including multi-image uploads) show up for admin review
+ * instead of only the static demo catalog. Doesn't force-seed every vendor
+ * that's never been touched — nothing to show for those anyway. */
+export function getAllVendorProducts(): Product[] {
+  return [...inventoryByVendorId.values()].flat();
 }
 
 export function addVendorProduct(vendorId: string, product: Product): Product {

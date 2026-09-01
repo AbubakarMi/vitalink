@@ -24,7 +24,9 @@ interface PageProps {
 /** Matches Frame 2018776196.pdf's "Order History" (the buyer sidebar's
  * "History" tab, not a separate route named /history). */
 export default async function BuyerOrdersPage({ searchParams }: PageProps) {
-  await requireAccountType("buyer", "/buyer/orders");
+  // ["Vendor"]: a vendor shopping the marketplace has their own purchase
+  // history here too — see lib/auth/route-groups.ts's isBuyerPathOpenToVendors.
+  await requireAccountType("buyer", "/buyer/orders", ["Vendor"]);
   const params = await searchParams;
   const orders = await listOrdersForBuyer();
 

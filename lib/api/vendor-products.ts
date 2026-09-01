@@ -115,6 +115,49 @@ export async function createVendorProductDraft(input: CreateVendorProductDraftIn
   return ProductSchema.parse(product);
 }
 
+export interface UpdateVendorProductInput {
+  categorySlug: string;
+  categoryLabel: string;
+  name: string;
+  brand: string;
+  brandSku?: string;
+  manufacturedIn: string;
+  price: number;
+  promoPrice?: number;
+  stockCount: number;
+  lowStockThreshold: number;
+  images?: { url: string; isPrimary: boolean }[];
+}
+
+/** Edit-product form's save — distinct from createVendorProductDraft (which
+ * mints a new id/sku) since this patches an existing listing's own record in
+ * place. Doesn't touch status: editing a live listing doesn't re-queue it for
+ * review, only a fresh submit-for-review (publishVendorProduct) does that. */
+export async function updateVendorProductDraft(id: string, input: UpdateVendorProductInput): Promise<Product> {
+  const vendorId = await currentVendorId();
+  const existing = getVendorProduct(vendorId, id);
+  if (!existing) {
+    throw new ApiError(404, "Product not found.");
+  }
+  const primaryImage = input.images?.find((img) => img.isPrimary) ?? input.images?.[0];
+  const updated = updateVendorProduct(vendorId, id, {
+    categorySlug: input.categorySlug,
+    categoryLabel: input.categoryLabel,
+    name: input.name,
+    brand: input.brand,
+    brandSku: input.brandSku,
+    manufacturedIn: input.manufacturedIn,
+    price: input.price,
+    promoPrice: input.promoPrice,
+    stockCount: input.stockCount,
+    inStock: input.stockCount > 0,
+    lowStockThreshold: input.lowStockThreshold,
+    imageUrl: primaryImage?.url ?? existing.imageUrl,
+    images: input.images ?? existing.images,
+  });
+  return ProductSchema.parse(updated);
+}
+
 export interface GeneratedProductDetails {
   shortDescription: string;
   technicalSpecs: { label: string; value: string }[];
@@ -197,6 +240,16 @@ export async function saveGeneratedDetails(id: string, content: GeneratedProduct
   return ProductSchema.parse(updated);
 }
 
+/**
+ * "Publish" submits for admin review — it does NOT go live immediately.
+ * Every product goes under review, the same rule admin moderation was built
+ * around (super admin PDFs) and that createVendorProductDraft() already
+ * follows (new drafts start PendingReview); this used to jump straight to
+ * Active/OutOfStock instead, skipping review entirely, which also meant a
+ * fixed-and-republished Rejected product never got a second look. Approving
+ * it (lib/api/admin/products.ts's approveAdminProduct) is what actually
+ * flips it to Active/OutOfStock.
+ */
 export async function publishVendorProduct(id: string): Promise<Product> {
   const vendorId = await currentVendorId();
   const product = getVendorProduct(vendorId, id);
@@ -205,7 +258,8 @@ export async function publishVendorProduct(id: string): Promise<Product> {
   }
   requireDraftReady(product);
   const updated = updateVendorProduct(vendorId, id, {
-    status: (product.stockCount ?? 0) > 0 ? "Active" : "OutOfStock",
+    status: "PendingReview",
+    rejectionReason: null,
   });
   return ProductSchema.parse(updated);
 }
@@ -213,6 +267,22 @@ export async function publishVendorProduct(id: string): Promise<Product> {
 export async function updateVendorProductStatus(id: string, status: VendorProductStatus): Promise<Product> {
   const vendorId = await currentVendorId();
   const updated = updateVendorProduct(vendorId, id, { status });
+  return ProductSchema.parse(updated);
+}
+
+/** Un-archiving restores whichever live status fits the current stock level
+ * (same rule restockVendorProduct uses for the reverse case), rather than
+ * always forcing "Active" — an empty-stock product should land back in
+ * OutOfStock, not silently claim to be sellable again. */
+export async function unarchiveVendorProduct(id: string): Promise<Product> {
+  const vendorId = await currentVendorId();
+  const product = getVendorProduct(vendorId, id);
+  if (!product) {
+    throw new ApiError(404, "Product not found.");
+  }
+  const updated = updateVendorProduct(vendorId, id, {
+    status: (product.stockCount ?? 0) > 0 ? "Active" : "OutOfStock",
+  });
   return ProductSchema.parse(updated);
 }
 

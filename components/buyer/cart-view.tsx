@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Minus, Plus, Trash2, ArrowLeft, ImageOff, X, ShieldCheck, Truck } from "lucide-react";
 import { useCart, type CartItem } from "@/lib/cart/store";
 import { DELIVERY_FEE } from "@/lib/cart/constants";
+import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 
 const ROW_GRID = "sm:grid-cols-[minmax(0,1fr)_110px_120px_110px_36px]";
 
@@ -61,10 +62,18 @@ export function CartView() {
                 <ArrowLeft className="size-4" aria-hidden />
                 Back to Shopping
               </Link>
-              <button type="button" onClick={clearCart} className="flex items-center gap-1.5 text-sm font-medium text-[#c0392b] hover:underline">
-                <Trash2 className="size-3.5" aria-hidden />
-                Clear Cart
-              </button>
+              <ConfirmActionButton
+                onConfirm={async () => clearCart()}
+                title="Clear your cart?"
+                description="Every item currently in your cart will be removed. This can't be undone."
+                confirmLabel="Yes, clear it"
+                trigger={
+                  <button type="button" className="flex items-center gap-1.5 text-sm font-medium text-[#c0392b] hover:underline">
+                    <Trash2 className="size-3.5" aria-hidden />
+                    Clear Cart
+                  </button>
+                }
+              />
             </div>
           </div>
 

@@ -11,6 +11,7 @@ import {
   setMockSessionCookies,
 } from "./mocks/auth-store";
 import { verifySession } from "@/lib/auth/dal";
+import { normalizeAccountType } from "@/lib/auth/session";
 
 /**
  * Adapter over the real, already-shipped Zitadel-backed auth endpoints (see
@@ -54,9 +55,28 @@ const BASE = "/auth";
 export const AccountTypeSchema = z.enum(["Customer", "Vendor", "Staff"]);
 export type AccountType = z.infer<typeof AccountTypeSchema>;
 
-// C# enums here are assumed to serialize as strings (JsonStringEnumConverter) per
-// modern ASP.NET Core convention — not observed against a live response. Flag and
-// fix if the real payload turns out to send integers instead.
+/**
+ * Confirmed against a live response (not an assumption anymore): the
+ * backend has no global JsonStringEnumConverter registered (only one enum
+ * in the whole codebase opts into one individually — see
+ * docs/BACKEND_INTEGRATION_GUIDE.md §2.2), so a plain C# enum property both
+ * serializes AND deserializes as its integer ordinal. Sending
+ * `accountType: "Customer"` (a string) in a POST /auth/register body fails
+ * outright — ASP.NET can't bind a JSON string onto an enum-typed property —
+ * with a 400 "Failed to read parameter... as JSON", not a validation error.
+ * Ordinal order confirmed from Application/Abstractions/Authentication/
+ * AuthDto.cs's `enum AccountType { Customer, Vendor, Staff }`.
+ */
+const ACCOUNT_TYPE_ORDINAL: Record<AccountType, number> = {
+  Customer: 0,
+  Vendor: 1,
+  Staff: 2,
+};
+
+// C# enums here are assumed to serialize as strings the same way — not
+// confirmed against a live response yet. Flag and fix (see
+// ACCOUNT_TYPE_ORDINAL above for the pattern) if these turn out to need the
+// same integer-ordinal treatment once MFA is actually exercised live.
 const MfaMethodSchema = z.enum(["Totp", "OtpEmail"]);
 
 const LoginResponseSchema = z.object({
@@ -82,7 +102,11 @@ const CurrentUserResponseSchema = z.object({
   email: z.string(),
   phone: z.string().nullable().optional(),
   displayName: z.string(),
-  accountType: AccountTypeSchema,
+  // Same raw value as the JWT's account_type claim (both come from the
+  // backend's GetAccountTypeAsync()) — needs the same normalization
+  // (lowercase, "admin" fallback) or a real account fails this outright.
+  // See lib/auth/session.ts's normalizeAccountType comment.
+  accountType: z.preprocess((value) => normalizeAccountType(value) ?? value, AccountTypeSchema),
 });
 export type CurrentUser = z.infer<typeof CurrentUserResponseSchema>;
 
@@ -103,7 +127,7 @@ export async function register(input: RegisterInput): Promise<RegisterResponse> 
     return { userId: user.userId, verificationEmailSent: true };
   }
   const { data } = await apiClient.post<unknown>(`${BASE}/register`, {
-    body: input,
+    body: { ...input, accountType: ACCOUNT_TYPE_ORDINAL[input.accountType] },
     withCredentials: false,
   });
   return RegisterResponseSchema.parse(data);
@@ -128,7 +152,11 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
     return { mfaRequired: false, completed: true, flowId: null, availableMethods: [] };
   }
   const { data, setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/login`, {
-    body: input,
+    // Wire field is "email" (LoginCommand.Email) — confirmed against a live
+    // 422 ("Email is required") when this sent "loginName" unchanged.
+    // loginName stays this function's own param name since it may end up
+    // meaning "email or Zitadel loginName" once non-email logins exist.
+    body: { email: input.loginName, password: input.password },
     withCredentials: false,
   });
   await relayCookies(setCookieHeaders);

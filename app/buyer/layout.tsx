@@ -14,12 +14,13 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  * navigation (design doc §2.2). Unlike vendor, there's no profile/
  * verification gate — a buyer account is usable immediately after signup.
  *
- * Allows Vendor sessions through too (alsoAllow) because /buyer/cart and
- * /buyer/checkout are open to them — a vendor can buy on the marketplace
- * like any other shopper (route-groups.ts's isBuyerPathOpenToVendors). A
- * vendor here only ever reached one of those two — every other /buyer/*
- * page's own requireAccountType("buyer", ...) call (no alsoAllow) redirects
- * them away before render. They get the same guest/shopper chrome as
+ * Allows Vendor sessions through too (alsoAllow) because /buyer/cart,
+ * /buyer/checkout, and /buyer/orders are open to them — a vendor can buy on
+ * the marketplace and track their own purchases like any other shopper
+ * (route-groups.ts's isBuyerPathOpenToVendors). A vendor here only ever
+ * reaches one of those three — every other /buyer/* page's own
+ * requireAccountType("buyer", ...) call (no alsoAllow) redirects them away
+ * before render. They get the same guest/shopper chrome as
  * (marketplace)/layout.tsx uses for anyone not signed in as a Customer,
  * not the buyer account dashboard.
  */

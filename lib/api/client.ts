@@ -1,5 +1,7 @@
 import "server-only";
+import { readFileSync } from "node:fs";
 import { cookies } from "next/headers";
+import { Agent, fetch as undiciFetch } from "undici";
 
 /**
  * Every call goes server-to-server, directly to the .NET backend, using an
@@ -12,9 +14,44 @@ import { cookies } from "next/headers";
 function backendOrigin(): string {
   const origin = process.env.BACKEND_ORIGIN;
   if (!origin) {
-    throw new Error("BACKEND_ORIGIN is not set (e.g. http://localhost:5000 in dev).");
+    throw new Error("BACKEND_ORIGIN is not set (e.g. http://localhost:5071 in dev).");
   }
   return origin;
+}
+
+/**
+ * The backend mounts every endpoint under `api/v{apiVersion}`
+ * (Program.cs: `app.MapGroup("api/v{apiVersion:apiVersion}")`, version 1
+ * registered) — confirmed against source, not guessed. Every adapter's own
+ * BASE constant (e.g. auth.ts's "/auth") omits this on purpose; it's added
+ * once, here, so adapters don't each have to know about API versioning.
+ * See docs/BACKEND_INTEGRATION_GUIDE.md §2.1.
+ */
+const API_VERSION_PREFIX = "/api/v1";
+
+function versionedPath(path: string): string {
+  return `${API_VERSION_PREFIX}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+/**
+ * Trusts the local .NET backend's self-signed HTTPS dev cert for just this
+ * fetch — NOT via NODE_EXTRA_CA_CERTS, which sounds right but actually
+ * replaces (not adds to) Node's trusted-root bundle in this Next/undici
+ * combination, breaking every *other* HTTPS call the process makes
+ * (confirmed live: it broke next/font/google's own fetch, a 500 on every
+ * page). A per-request undici Agent scopes trust to only the backend origin.
+ * Only used when BACKEND_CA_CERT_PATH is set — normal deployments hit a
+ * real backend with a real cert and need none of this. See
+ * docs/BACKEND_INTEGRATION_GUIDE.md and .env.local's BACKEND_ORIGIN comment.
+ */
+let backendDispatcher: Agent | undefined;
+function getBackendDispatcher(): Agent | undefined {
+  const certPath = process.env.BACKEND_CA_CERT_PATH;
+  if (!certPath) return undefined;
+  if (!backendDispatcher) {
+    backendDispatcher = new Agent({ connect: { ca: readFileSync(certPath, "utf8") } });
+  }
+  return backendDispatcher;
 }
 
 export class ApiError extends Error {
@@ -44,7 +81,7 @@ export interface BackendResponse<T> {
 }
 
 async function request<T>(method: string, path: string, options: RequestOptions = {}): Promise<BackendResponse<T>> {
-  const url = new URL(path, backendOrigin());
+  const url = new URL(versionedPath(path), backendOrigin());
   if (options.params) {
     for (const [key, value] of Object.entries(options.params)) {
       if (value !== undefined) url.searchParams.set(key, String(value));
@@ -60,7 +97,16 @@ async function request<T>(method: string, path: string, options: RequestOptions 
     headers.Cookie = cookieStore.toString();
   }
 
-  const response = await fetch(url, {
+  const dispatcher = getBackendDispatcher();
+  // Node's own global fetch is backed by whatever undici version Node itself
+  // bundled internally — passing a `dispatcher` from the standalone `undici`
+  // npm package into it throws ("invalid onRequestStart method", an
+  // internal-version mismatch), confirmed live. undici's own fetch export
+  // and its own Agent are always the same version, so route through that
+  // instead, but only when a custom dispatcher is actually needed —
+  // everywhere else keeps using the platform's native fetch.
+  const doFetch = dispatcher ? undiciFetch : fetch;
+  const response = await doFetch(url, {
     method,
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
@@ -68,6 +114,7 @@ async function request<T>(method: string, path: string, options: RequestOptions 
     // wanted for public/mocked data, happens explicitly via "use cache" in the
     // calling Server Component instead — see design doc §7.
     cache: "no-store",
+    ...(dispatcher ? { dispatcher } : {}),
   });
 
   if (!response.ok) {

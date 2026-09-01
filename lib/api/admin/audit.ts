@@ -16,7 +16,9 @@ import { listMockAuditLog } from "../mocks/admin-store";
  * backend later") — fields are optional/nullable so a mismatch fails soft.
  */
 
-const BASE = "/admin/audit-logs";
+// "admin/audit" — confirmed against AdministrationEndpoints.Audit.AuditBase,
+// not "/admin/audit-logs" as originally guessed here.
+const BASE = "/admin/audit";
 
 const AuditLogEntrySchema = z.object({
   id: z.string(),

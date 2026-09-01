@@ -5,7 +5,7 @@ const QUICK_CATEGORIES = [
   { label: "Medical Equipment", slug: "medical-equipment" },
   { label: "Scientific Tools", slug: "scientific-tools" },
   { label: "Reagents & Culture Media", slug: "reagents-culture-media" },
-  { label: "Lab Equipments", slug: "lab-equipment" },
+  { label: "Lab Equipment", slug: "lab-equipment" },
 ];
 
 /**

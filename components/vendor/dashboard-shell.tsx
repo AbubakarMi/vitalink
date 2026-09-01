@@ -3,9 +3,11 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Bell, ChartPie, Package, ShoppingBag, ArrowLeftRight, BarChart3, Settings as SettingsIcon, Menu, X } from "lucide-react";
+import { Bell, ChartPie, Package, Archive, ShoppingBag, Store, ArrowLeftRight, BarChart3, Settings as SettingsIcon, Menu, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountMenu } from "@/components/ui/account-menu";
+import { SearchBar } from "@/components/marketing/search-bar";
+import { CartIcon } from "@/components/marketplace/cart-icon";
 
 /**
  * Persistent vendor dashboard chrome (sidebar + header) — wraps every page
@@ -21,7 +23,13 @@ import { AccountMenu } from "@/components/ui/account-menu";
 
 const NAV_ITEMS = [
   { href: "/vendor/dashboard", label: "Overview", icon: ChartPie },
-  { href: "/vendor/products", label: "Global Inventory", icon: Package },
+  // A vendor is still a shopper — /products is the public marketplace catalog,
+  // open to any signed-in account type (unlike everything else below, which
+  // is vendor-only). See lib/auth/route-groups.ts's isBuyerPathOpenToVendors
+  // for the cart/checkout/orders side of this.
+  { href: "/products", label: "Marketplace", icon: Store },
+  { href: "/vendor/products", label: "Inventory", icon: Package },
+  { href: "/vendor/products/archive", label: "Archive", icon: Archive },
   { href: "/vendor/orders", label: "Orders", icon: ShoppingBag },
   { href: "/vendor/transactions", label: "Transactions", icon: ArrowLeftRight },
 ] as const;
@@ -30,6 +38,23 @@ const NAV_ITEMS_BOTTOM = [
   { href: "/vendor/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/vendor/settings", label: "Settings", icon: SettingsIcon },
 ] as const;
+
+/** Longest-prefix-wins match — "Inventory" (/vendor/products) and "Archive"
+ * (/vendor/products/archive) are sibling routes where one is a literal path
+ * prefix of the other, same shape of bug as the admin Configuration nav
+ * (components/admin/dashboard-shell.tsx): a plain startsWith() would light
+ * both up together on the archive page. */
+function isNavItemActive(pathname: string | null, items: readonly { href: string }[], href: string): boolean {
+  if (!pathname) return false;
+  if (pathname === href) return true;
+  if (!pathname.startsWith(`${href}/`)) return false;
+  return !items.some(
+    (other) =>
+      other.href !== href &&
+      other.href.startsWith(`${href}/`) &&
+      (pathname === other.href || pathname.startsWith(`${other.href}/`)),
+  );
+}
 
 export function DashboardShell({
   vendorName,
@@ -68,7 +93,7 @@ export function DashboardShell({
   return (
     <div className="flex h-dvh flex-col bg-cream print:h-auto print:block">
       <div className="h-[3px] shrink-0 bg-signal print:hidden" />
-      <header className="flex shrink-0 items-center justify-between border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10 print:hidden">
+      <header className="grid shrink-0 grid-cols-[auto_1fr_auto] items-center gap-4 border-b border-line bg-white px-4 py-3 sm:px-6 lg:px-10 print:hidden">
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -82,7 +107,15 @@ export function DashboardShell({
             VITALINK
           </Link>
         </div>
-        <div className="flex items-center gap-2 sm:gap-3">
+
+        <div className="hidden justify-center lg:flex">
+          <SearchBar variant="nav" />
+        </div>
+
+        <div className="flex items-center gap-2 justify-self-end sm:gap-3">
+          {/* Buying, not selling — this is the same cart a buyer uses, since
+              /buyer/cart is open to Vendor sessions (route-groups.ts). */}
+          <CartIcon />
           <button
             type="button"
             aria-label="Notifications"
@@ -153,7 +186,7 @@ function SidebarNav({
       {!bottomOnly && (
         <nav className="space-y-1">
           {NAV_ITEMS.map((item) => (
-            <VendorNavLink key={item.href} item={item} active={pathname?.startsWith(item.href) ?? false} />
+            <VendorNavLink key={item.href} item={item} active={isNavItemActive(pathname, NAV_ITEMS, item.href)} />
           ))}
         </nav>
       )}
