@@ -31,6 +31,13 @@ async function requireAdminPermission(resource: string, action: string) {
   }
 }
 
+// revalidatePath("/admin", "layout") on every action below that can move a
+// vendor/product in or out of "Pending" — app/admin/layout.tsx fetches the
+// Approval sidebar badge's pending counts once per layout render, and a
+// plain revalidatePath("/admin/vendors") only revalidates that page segment,
+// not the shared layout wrapping it, so the badge would otherwise go stale
+// until the next full navigation.
+
 export async function approveVendorAction(vendorId: string): Promise<ActionResult> {
   try {
     await requireAdminPermission("Vendors", "Manage");
@@ -38,6 +45,7 @@ export async function approveVendorAction(vendorId: string): Promise<ActionResul
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
     revalidatePath("/admin/dashboard");
+    revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't approve this vendor." };
@@ -51,6 +59,7 @@ export async function rejectVendorAction(vendorId: string, reason: string): Prom
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
     revalidatePath("/admin/dashboard");
+    revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't decline this vendor." };
@@ -63,6 +72,7 @@ export async function markVendorUnderReviewAction(vendorId: string): Promise<Act
     await markVendorUnderReview(vendorId);
     revalidatePath("/admin/vendors");
     revalidatePath(`/admin/vendors/${vendorId}`);
+    revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't update this vendor." };
@@ -74,6 +84,7 @@ export async function approveProductAction(productId: string): Promise<ActionRes
     await requireAdminPermission("Products", "Manage");
     await approveAdminProduct(productId);
     revalidatePath("/admin/inventory");
+    revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't approve this product." };
@@ -85,6 +96,7 @@ export async function rejectProductAction(productId: string, reason: string): Pr
     await requireAdminPermission("Products", "Manage");
     await rejectAdminProduct(productId, reason);
     revalidatePath("/admin/inventory");
+    revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't reject this product." };

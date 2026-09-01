@@ -15,6 +15,7 @@ import {
   BarChart3,
   Settings as SettingsIcon,
   ClipboardList,
+  ClipboardCheck,
   Tags,
   Contact,
   FileBarChart,
@@ -24,20 +25,22 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { AccountMenu } from "@/components/ui/account-menu";
+import type { PendingApprovalCounts } from "@/lib/api/admin/approvals";
 
 /**
  * Persistent Super Admin dashboard chrome (sidebar + header) — wraps every
  * page under app/admin/ once a Staff user is signed in. Own copy of
- * components/vendor/dashboard-shell.tsx's shape (sidebar nav from the
- * "Super Admin Dashboard" mockup: Overview / Global Inventory / Orders /
- * Users / Transactions, then Analytics / Settings below), not a shared
- * import — per the "components never cross role boundaries" rule.
+ * components/vendor/dashboard-shell.tsx's shape, not a shared import — per
+ * the "components never cross role boundaries" rule. Started from the flat
+ * "Super Admin Dashboard" mockup nav (Overview / Vendor Review / Global
+ * Inventory / Orders / Users / Transactions, then Analytics / Settings) and
+ * has since grown two dropdown modules under Overview: Approval (Vendor
+ * Review + Product Review, with a pending-count badge) and Configuration
+ * (Onboarding Fields + Product Categories).
  */
 
 const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Overview", icon: ChartPie },
-  { href: "/admin/vendors", label: "Vendor Review", icon: Building2 },
-  { href: "/admin/inventory", label: "Global Inventory", icon: Boxes },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
   { href: "/admin/buyers", label: "Buyers", icon: Contact },
@@ -48,6 +51,24 @@ const NAV_ITEMS = [
 const NAV_ITEMS_BOTTOM = [
   { href: "/admin/analytics", label: "Analytics", icon: BarChart3 },
   { href: "/admin/reports", label: "Reports", icon: FileBarChart },
+] as const;
+
+/** "Approval" is a module too — Vendor Review and Product Review used to be
+ * flat top-level items; grouping them mirrors Configuration and gives the
+ * two "something needs your decision" queues one home with a shared pending
+ * count badge (see app/admin/layout.tsx's getPendingApprovalCounts). Product
+ * Review deep-links straight into the pending queue (?status=PendingReview)
+ * rather than the unfiltered inventory browse — matchPath still points at
+ * the bare route so active-state and the ?status= query don't fight. */
+const APPROVAL_ITEMS = [
+  { href: "/admin/vendors", matchPath: "/admin/vendors", label: "Vendor Review", icon: Building2, countKey: "vendors" as const },
+  {
+    href: "/admin/inventory?status=PendingReview",
+    matchPath: "/admin/inventory",
+    label: "Product Review",
+    icon: Boxes,
+    countKey: "products" as const,
+  },
 ] as const;
 
 /** "Configuration" is a module, not a single page — a dropdown of every
@@ -61,10 +82,12 @@ const CONFIGURATION_ITEMS = [
 export function DashboardShell({
   name,
   walletBalance,
+  pendingApprovals,
   children,
 }: {
   name: string;
   walletBalance?: number;
+  pendingApprovals: PendingApprovalCounts | null;
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
@@ -121,7 +144,7 @@ export function DashboardShell({
 
       <div className="flex flex-1 overflow-hidden">
         <aside className="vendor-scroll hidden w-64 shrink-0 flex-col justify-between overflow-y-auto border-r border-line bg-white px-4 py-6 lg:flex">
-          <SidebarNav pathname={pathname} />
+          <SidebarNav pathname={pathname} pendingApprovals={pendingApprovals} />
         </aside>
 
         {mobileNavOpen && (
@@ -145,9 +168,9 @@ export function DashboardShell({
                     <X className="size-4.5" aria-hidden />
                   </button>
                 </div>
-                <SidebarNav pathname={pathname} topOnly />
+                <SidebarNav pathname={pathname} pendingApprovals={pendingApprovals} topOnly />
               </div>
-              <SidebarNav pathname={pathname} bottomOnly />
+              <SidebarNav pathname={pathname} pendingApprovals={pendingApprovals} bottomOnly />
             </aside>
           </div>
         )}
@@ -160,10 +183,12 @@ export function DashboardShell({
 
 function SidebarNav({
   pathname,
+  pendingApprovals,
   topOnly,
   bottomOnly,
 }: {
   pathname: string | null;
+  pendingApprovals: PendingApprovalCounts | null;
   topOnly?: boolean;
   bottomOnly?: boolean;
 }) {
@@ -174,9 +199,16 @@ function SidebarNav({
           {NAV_ITEMS.map((item, i) => (
             <Fragment key={item.href}>
               <AdminNavLink item={item} active={pathname?.startsWith(item.href) ?? false} />
-              {/* Configuration sits right under Overview — the first thing an
-                  admin sees, not buried after every operational nav item. */}
-              {i === 0 && <ConfigurationNavGroup pathname={pathname} />}
+              {/* Approval and Configuration sit right under Overview — the
+                  first things an admin sees, not buried after every
+                  operational nav item. Approval first: it's the "something
+                  needs you" queue, Configuration is occasional setup. */}
+              {i === 0 && (
+                <>
+                  <ApprovalNavGroup pathname={pathname} counts={pendingApprovals} />
+                  <ConfigurationNavGroup pathname={pathname} />
+                </>
+              )}
             </Fragment>
           ))}
         </nav>
@@ -189,6 +221,68 @@ function SidebarNav({
         </nav>
       )}
     </>
+  );
+}
+
+/** Exact match against the bare path — Product Review's href carries a
+ * ?status= query the pathname from usePathname() never includes. */
+function isApprovalItemActive(pathname: string | null, matchPath: string): boolean {
+  return pathname === matchPath;
+}
+
+function ApprovalNavGroup({ pathname, counts }: { pathname: string | null; counts: PendingApprovalCounts | null }) {
+  const isChildActive = APPROVAL_ITEMS.some((item) => isApprovalItemActive(pathname, item.matchPath));
+  const [open, setOpen] = useState(isChildActive);
+
+  const [wasChildActive, setWasChildActive] = useState(isChildActive);
+  if (isChildActive !== wasChildActive) {
+    setWasChildActive(isChildActive);
+    if (isChildActive) setOpen(true);
+  }
+
+  const total = counts?.total ?? 0;
+
+  return (
+    <div>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={cn(
+          "flex w-full items-center gap-3 rounded-xl px-3.5 py-2.5 text-sm font-medium transition-colors",
+          isChildActive && !open ? "bg-ink text-white" : "text-text-muted hover:bg-mint hover:text-ink",
+        )}
+      >
+        <ClipboardCheck className="size-4.5 shrink-0" aria-hidden />
+        <span className="flex-1 text-left">Approval</span>
+        {total > 0 && <CountBadge count={total} />}
+        <ChevronDown className={cn("size-4 shrink-0 transition-transform", open && "rotate-180")} aria-hidden />
+      </button>
+      {open && (
+        <div className="mt-1 ml-4 space-y-1 border-l border-line pl-3">
+          {APPROVAL_ITEMS.map((item) => (
+            <AdminNavLink
+              key={item.href}
+              item={item}
+              active={isApprovalItemActive(pathname, item.matchPath)}
+              count={counts?.[item.countKey]}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Small red "unread"-style pill — same idea as an inbox badge, shown next
+ * to the Approval group label (a total) and each of its two items (per-type)
+ * whenever that count is above zero. Caps the label at "99+" so a runaway
+ * count never blows out the sidebar's fixed width. */
+function CountBadge({ count }: { count: number }) {
+  return (
+    <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#c0392b] px-1.5 text-[10px] font-bold text-white">
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }
 
@@ -245,9 +339,11 @@ function ConfigurationNavGroup({ pathname }: { pathname: string | null }) {
 function AdminNavLink({
   item,
   active,
+  count,
 }: {
   item: { href: string; label: string; icon: typeof ChartPie };
   active: boolean;
+  count?: number;
 }) {
   const Icon = item.icon;
   return (
@@ -259,7 +355,8 @@ function AdminNavLink({
       )}
     >
       <Icon className="size-4.5 shrink-0" aria-hidden />
-      {item.label}
+      <span className="flex-1">{item.label}</span>
+      {!!count && <CountBadge count={count} />}
     </Link>
   );
 }

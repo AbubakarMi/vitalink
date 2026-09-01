@@ -1,5 +1,6 @@
 import { requireAccountType } from "@/lib/auth/dal";
 import { getTransactionSummary } from "@/lib/api/admin/transactions";
+import { getPendingApprovalCounts } from "@/lib/api/admin/approvals";
 import { DashboardShell } from "@/components/admin/dashboard-shell";
 
 export const instant = false; // reads cookies — genuinely dynamic
@@ -16,9 +17,12 @@ export const instant = false; // reads cookies — genuinely dynamic
  */
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const session = await requireAccountType("admin", "/admin/dashboard");
-  const summary = await getTransactionSummary().catch(() => null);
+  const [summary, pendingApprovals] = await Promise.all([
+    getTransactionSummary().catch(() => null),
+    getPendingApprovalCounts().catch(() => null),
+  ]);
   return (
-    <DashboardShell name={session.displayName || session.email} walletBalance={summary?.fundsInEscrow}>
+    <DashboardShell name={session.displayName || session.email} walletBalance={summary?.fundsInEscrow} pendingApprovals={pendingApprovals}>
       {children}
     </DashboardShell>
   );
