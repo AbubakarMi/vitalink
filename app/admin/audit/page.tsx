@@ -7,7 +7,7 @@ import { AdminTableShell, AdminTableHead, AdminTableHeadCell, AdminTableRow, Adm
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
 /** Security log — dashboard's "View Security log" link (super admin/Super Admin
- * Dashboard.pdf). Real endpoint (GetAdminAuditLogs), shape unconfirmed yet — see
+ * Dashboard.pdf). Real endpoint (GetAdminAuditLogs), shape confirmed live — see
  * lib/api/admin/audit.ts. */
 export default async function AdminAuditPage() {
   await requireAccountType("admin", "/admin/audit");
@@ -29,8 +29,8 @@ export default async function AdminAuditPage() {
       <AdminTableShell>
         <AdminTableHead>
           <AdminTableHeadCell>Event</AdminTableHeadCell>
+          <AdminTableHeadCell>Table</AdminTableHeadCell>
           <AdminTableHeadCell>Actor</AdminTableHeadCell>
-          <AdminTableHeadCell>IP Address</AdminTableHeadCell>
           <AdminTableHeadCell>When</AdminTableHeadCell>
         </AdminTableHead>
         <tbody>
@@ -40,13 +40,13 @@ export default async function AdminAuditPage() {
             result.data.map((entry) => (
               <AdminTableRow key={entry.id}>
                 <AdminTableCell>
-                  <p className="font-medium">{entry.event}</p>
-                  {entry.description && <p className="text-xs text-text-muted">{entry.description}</p>}
+                  <p className="font-medium">{entry.action}</p>
+                  {entry.message && <p className="text-xs text-text-muted">{entry.message}</p>}
                 </AdminTableCell>
-                <AdminTableCell className="text-text-muted">{entry.actorName ?? "—"}</AdminTableCell>
-                <AdminTableCell className="text-text-muted">{entry.ipAddress ?? "—"}</AdminTableCell>
+                <AdminTableCell className="text-text-muted">{entry.tableName}</AdminTableCell>
+                <AdminTableCell className="text-text-muted">{entry.email ?? "—"}</AdminTableCell>
                 <AdminTableCell className="text-text-muted">
-                  {new Date(entry.createdAt).toLocaleString("en-NG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
+                  {new Date(entry.timestamp).toLocaleString("en-NG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}
                 </AdminTableCell>
               </AdminTableRow>
             ))

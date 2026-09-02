@@ -4,6 +4,7 @@ import { apiClient } from "../client";
 import { pagedResult } from "../schemas/pagination";
 import { VendorVerificationStatusSchema } from "../vendor-profile";
 import { ADMIN_SOURCE } from "./data-source";
+import { toBackendListParams } from "./query-params";
 import {
   listMockVendors,
   getMockVendorDetails,
@@ -82,7 +83,13 @@ export async function listVendors(params: ListVendorsParams = {}) {
   if (ADMIN_SOURCE === "mock") {
     return PagedVendorsSchema.parse(listMockVendors(params));
   }
-  const { data } = await apiClient.get<unknown>(BASE, { params });
+  const { data } = await apiClient.get<unknown>(BASE, {
+    params: {
+      ...toBackendListParams(params),
+      OrderBy: "createdAt desc",
+      ...(params.status ? { VerificationStatus: params.status } : {}),
+    },
+  });
   return PagedVendorsSchema.parse(data);
 }
 

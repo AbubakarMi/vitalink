@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiClient, ApiError } from "../client";
 import { pagedResult } from "../schemas/pagination";
 import { ADMIN_SOURCE } from "./data-source";
+import { toBackendListParams } from "./query-params";
 import {
   listMockAdminProducts,
   getMockAdminProductDetails,
@@ -17,13 +18,18 @@ import {
  * GetProductDuplicates, GetProductMergePreview, MergeProducts) backing the
  * "Global Inventory" screen (super admin/Vendor Inventory.pdf).
  *
- * The field names/shape below are inferred from the mockup and the sibling
- * admin adapters' conventions (lib/api/admin/vendors.ts, staff.ts) — this
- * hasn't been checked against the actual GetAdminProducts response DTO yet
- * (deferred per the "build the frontend now, review the backend later"
- * instruction). Every field the UI reads is optional/nullable here so a
- * mismatch fails soft (missing data) rather than throwing a Zod parse error
- * — narrow it to the real shape once the backend is reviewed.
+ * CONFIRMED LIVE (2026-09-02, not inferred anymore): AdminProductSchema
+ * below does NOT match GetProductsResponse at all. Real field names are
+ * `productId` (not `id`), `approvalStatus` (not `status`), `brandName`/
+ * `categoryName` (not `brand`/`categoryLabel`), `primaryImageUrl` (not
+ * `imageUrl`), `submittedByVendorId` (not `vendorId`) — and there is no
+ * `price` field on this response at all (`price` is required/non-nullable
+ * below, so a live call throws a Zod parse error immediately, every time).
+ * This is the Product/Offer split (BACKEND_INTEGRATION_GUIDE.md §2.5) —
+ * "price" genuinely doesn't belong on a Product, only on its Offers — so
+ * this isn't a quick field-rename fix, it needs the real redesign that
+ * section already flags. The pagination/OrderBy params below are fixed and
+ * correct regardless of that; only response parsing is still broken.
  */
 
 const BASE = "/admin/products";
@@ -76,7 +82,19 @@ export async function listAdminProducts(params: ListAdminProductsParams = {}) {
   if (ADMIN_SOURCE === "mock") {
     return PagedAdminProductsSchema.parse(listMockAdminProducts(params));
   }
-  const { data } = await apiClient.get<unknown>(BASE, { params });
+  // ApprovalStatus is the real backend filter field, but its vocabulary
+  // (PendingReview/Approved/Rejected) only partially overlaps this app's
+  // status vocabulary (ADMIN_PRODUCT_STATUSES) — passed through best-effort
+  // for the one value that does line up (PendingReview, from the Approval
+  // nav module's deep link). Moot until the response-shape mismatch above
+  // is fixed anyway.
+  const { data } = await apiClient.get<unknown>(BASE, {
+    params: {
+      ...toBackendListParams(params),
+      OrderBy: "createdAt desc",
+      ...(params.status ? { ApprovalStatus: params.status } : {}),
+    },
+  });
   return PagedAdminProductsSchema.parse(data);
 }
 

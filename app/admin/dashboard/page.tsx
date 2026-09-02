@@ -169,9 +169,11 @@ export default async function AdminDashboardPage() {
             ) : (
               auditEntries.map((entry) => (
                 <div key={entry.id} className="rounded-xl bg-[#fff7e6] px-3.5 py-2.5">
-                  <p className="text-sm font-medium text-ink">{entry.event}</p>
+                  <p className="text-sm font-medium text-ink">
+                    {entry.action} — {entry.tableName}
+                  </p>
                   <p className="mt-0.5 text-xs text-text-muted">
-                    {[entry.ipAddress, formatDateTime(entry.createdAt)].filter(Boolean).join(" | ")}
+                    {[entry.email, formatDateTime(entry.timestamp)].filter(Boolean).join(" | ")}
                   </p>
                 </div>
               ))

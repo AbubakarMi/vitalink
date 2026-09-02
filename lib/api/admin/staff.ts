@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiClient } from "../client";
 import { pagedResult } from "../schemas/pagination";
 import { ADMIN_SOURCE } from "./data-source";
+import { toBackendListParams } from "./query-params";
 import { listMockStaff, createMockStaff, approveMockStaff, suspendMockStaff } from "../mocks/admin-store";
 
 /** Real endpoints — see vitalink-backend Web.Api/Endpoints/Administration/Staff/*,
@@ -55,7 +56,9 @@ export async function listStaff(params: ListStaffParams = {}) {
       totalPages: Math.max(1, Math.ceil(all.length / pageSize)),
     });
   }
-  const { data } = await apiClient.get<unknown>(BASE, { params });
+  const { data } = await apiClient.get<unknown>(BASE, {
+    params: { ...toBackendListParams(params), OrderBy: "createdAt desc" },
+  });
   return PagedStaffSchema.parse(data);
 }
 

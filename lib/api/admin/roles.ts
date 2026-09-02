@@ -3,6 +3,7 @@ import { z } from "zod";
 import { apiClient } from "../client";
 import { pagedResult } from "../schemas/pagination";
 import { ADMIN_SOURCE } from "./data-source";
+import { toBackendListParams } from "./query-params";
 import { listMockRoles, getMockRoleDetails } from "../mocks/admin-store";
 import { ApiError } from "../client";
 
@@ -50,7 +51,9 @@ export async function listRoles(params: { page?: number; pageSize?: number } = {
       totalPages: Math.max(1, Math.ceil(all.length / pageSize)),
     });
   }
-  const { data } = await apiClient.get<unknown>(BASE, { params });
+  const { data } = await apiClient.get<unknown>(BASE, {
+    params: { ...toBackendListParams(params), OrderBy: "createdAt desc" },
+  });
   return PagedRolesSchema.parse(data);
 }
 

@@ -751,14 +751,15 @@ export function rejectMockAdminProduct(productId: string, reason: string): void 
 
 // ---- Audit log ----
 
+// Field names match the real GetAdminAuditResponse (action/tableName/email/
+// message/timestamp), confirmed live — see lib/api/admin/audit.ts's comment.
 export interface MockAuditEntry {
   id: string;
-  event: string;
-  description: string | null;
-  severity: string | null;
-  ipAddress: string | null;
-  actorName: string | null;
-  createdAt: string;
+  action: string;
+  tableName: string;
+  email: string | null;
+  message: string | null;
+  timestamp: string;
 }
 
 const audit: MockAuditEntry[] =
@@ -766,30 +767,27 @@ const audit: MockAuditEntry[] =
   [
     {
       id: randomUUID(),
-      event: "Unauthorized Access Attempt",
-      description: "Repeated failed login attempts against a Staff account.",
-      severity: "high",
-      ipAddress: "192.168.1.45",
-      actorName: null,
-      createdAt: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
+      action: "Deleted",
+      tableName: "Users",
+      email: null,
+      message: "Repeated failed login attempts against a Staff account.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 40).toISOString(),
     },
     {
       id: randomUUID(),
-      event: "Data sync Delay",
-      description: "Catalog sync to the EU-West replica fell behind by 4 minutes.",
-      severity: "low",
-      ipAddress: null,
-      actorName: "System",
-      createdAt: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
+      action: "Modified",
+      tableName: "Products",
+      email: "system@vitalink.tech",
+      message: "Catalog sync to the EU-West replica fell behind by 4 minutes.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 90).toISOString(),
     },
     {
       id: randomUUID(),
-      event: "Vendor approved",
-      description: "Best Medical Equipment marked Verified.",
-      severity: "info",
-      ipAddress: null,
-      actorName: "Sam Staff",
-      createdAt: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
+      action: "Modified",
+      tableName: "Vendors",
+      email: "staff@vitalink.dev",
+      message: "Best Medical Equipment marked Verified.",
+      timestamp: new Date(Date.now() - 1000 * 60 * 60 * 6).toISOString(),
     },
   ];
 globalForAdminMock.__vitalinkMockAudit = audit;

@@ -1,6 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import { apiClient } from "../client";
+import { pagedResult } from "../schemas/pagination";
 import { ADMIN_SOURCE } from "./data-source";
 import {
   listMockProductCategories,
@@ -31,12 +32,18 @@ const AdminProductCategorySchema = z.object({
 });
 export type AdminProductCategory = z.infer<typeof AdminProductCategorySchema>;
 
+const PagedAdminProductCategoriesSchema = pagedResult(AdminProductCategorySchema);
+
 export async function listAdminProductCategories(): Promise<AdminProductCategory[]> {
   if (ADMIN_SOURCE === "mock") {
     return z.array(AdminProductCategorySchema).parse(listMockProductCategories());
   }
-  const { data } = await apiClient.get<unknown>(BASE);
-  return z.array(AdminProductCategorySchema).parse(data);
+  // Paginated like every other admin list endpoint (PagedListResult<T>, not
+  // a bare array) — confirmed against the real response shape (see
+  // docs/BACKEND_TODO.md). PageSize:100 (its max) since there's no
+  // pagination UI on this page — it's meant to show every category.
+  const { data } = await apiClient.get<unknown>(BASE, { params: { PageNumber: 1, PageSize: 100, OrderBy: "name asc" } });
+  return PagedAdminProductCategoriesSchema.parse(data).data;
 }
 
 export interface CreateAdminProductCategoryInput {

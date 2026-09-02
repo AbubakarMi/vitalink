@@ -11,9 +11,12 @@ import { listMockAuditLog } from "../mocks/admin-store";
  * the dashboard's "System Anomalies" panel and "View Security log" link
  * (super admin/Super Admin Dashboard.pdf).
  *
- * Shape inferred from the mockup, not yet checked against the backend's
- * actual response DTO (deferred per "build the frontend now, review the
- * backend later") — fields are optional/nullable so a mismatch fails soft.
+ * Field names below match GetAdminAuditResponse exactly, confirmed live
+ * (2026-09-02) — the previous shape (event/description/severity/ipAddress/
+ * actorName/createdAt) didn't exist on the real response at all and threw a
+ * Zod parse error on every live call. This is a straightforward field-level
+ * change table (Action/TableName/Message/Email/Timestamp), unlike admin
+ * products' shape mismatch, which needs a real redesign — see products.ts.
  */
 
 // "admin/audit" — confirmed against AdministrationEndpoints.Audit.AuditBase,
@@ -22,12 +25,12 @@ const BASE = "/admin/audit";
 
 const AuditLogEntrySchema = z.object({
   id: z.string(),
-  event: z.string(),
-  description: z.string().nullable().optional(),
-  severity: z.string().nullable().optional(),
-  ipAddress: z.string().nullable().optional(),
-  actorName: z.string().nullable().optional(),
-  createdAt: z.string(),
+  /** "Added" | "Modified" | "Deleted", per GetAdminAuditParams' Description. */
+  action: z.string(),
+  tableName: z.string(),
+  email: z.string().nullable().optional(),
+  message: z.string().nullable().optional(),
+  timestamp: z.string(),
 });
 export type AuditLogEntry = z.infer<typeof AuditLogEntrySchema>;
 
@@ -43,6 +46,11 @@ export async function listAuditLog(params: ListAuditLogParams = {}) {
   if (ADMIN_SOURCE === "mock") {
     return PagedAuditLogSchema.parse(listMockAuditLog(params));
   }
-  const { data } = await apiClient.get<unknown>(BASE, { params });
+  // GetAdminAuditParams doesn't extend QueryStringParams and has no OrderBy
+  // field at all (unlike every other admin list endpoint) — just PageNumber/
+  // PageSize, so no toBackendListParams() search/OrderBy mapping applies here.
+  const { data } = await apiClient.get<unknown>(BASE, {
+    params: { PageNumber: params.page ?? 1, PageSize: params.pageSize ?? 10 },
+  });
   return PagedAuditLogSchema.parse(data);
 }

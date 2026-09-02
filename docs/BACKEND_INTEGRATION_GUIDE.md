@@ -56,6 +56,71 @@ they're one-time setup steps on whichever machine runs this, not bugs:
   for why `NODE_EXTRA_CA_CERTS` is the wrong way to do that in this stack and
   what `lib/api/client.ts` does instead.
 
+### 0b. Status (2026-09-02) — `ADMIN_DATA_SOURCE=live` and MFA
+
+**`ADMIN_DATA_SOURCE=live` is now confirmed working** for Vendors, Staff/Users,
+Product Categories, and the Audit log — signed in as the seeded super-admin
+(`admin@vitalink.tech` / `P@ssw0rd1`, `IdentityConstants.cs` — there's no
+self-registration path to a Staff account; `Register` explicitly rejects
+`accountType` values other than Customer/Vendor with a 422). This needed
+`AUTH_DATA_SOURCE=live` too, since admin endpoints require a real Zitadel
+session cookie, not a locally-mock-signed JWT.
+
+Three real bugs found and fixed on the frontend side, all confirmed live
+(short version for the backend team: `docs/BACKEND_TODO.md`):
+
+1. **Query param names were wrong on every admin list adapter.** This app
+   sent `page`/`pageSize`/`search`; the real contract
+   (`Application.Abstractions.QueryParams.QueryStringParams`, the base class
+   every `Get*Params` extends) is `PageNumber`/`PageSize`/`Term`. Fixed via
+   a new shared `lib/api/admin/query-params.ts#toBackendListParams()`, used
+   by `vendors.ts`, `staff.ts`, `roles.ts`, `products.ts`; `categories.ts`
+   and `audit.ts` build their params inline since their param shape is
+   slightly different (audit has no `Term`/`OrderBy` at all).
+2. **`PageNumber`/`PageSize`/`OrderBy` are effectively required despite
+   having C# default values.** Confirmed live: omitting any of them 400s
+   with `"Required parameter ... was not provided from query string"` — an
+   `[AsParameters]` binding quirk with non-nullable value/reference types,
+   not something a `[DefaultValue]` attribute or `= "..."` initializer
+   resolves at the HTTP layer. `toBackendListParams()` always sends
+   `PageNumber`/`PageSize` now; `OrderBy` is each caller's own explicit
+   param (not every endpoint has one — `GetAdminAuditParams` doesn't extend
+   `QueryStringParams` and has no `OrderBy` field, so `audit.ts` only sends
+   `PageNumber`/`PageSize`).
+3. **The admin audit log's response shape didn't match at all.**
+   `AuditLogEntrySchema` expected `event`/`description`/`severity`/
+   `ipAddress`/`actorName`/`createdAt` — none of which exist on the real
+   `GetAdminAuditResponse` (`action`/`tableName`/`email`/`message`/
+   `timestamp`, plus `userId`/`vendorId`/`previousValues`/`newValues`/
+   `modifiedProperties`/`primaryKey` this app doesn't use). A live call
+   threw a Zod parse error every time. Fixed: `audit.ts`'s schema, the mock
+   store's seed shape (`admin-store.ts`'s `MockAuditEntry`), and both
+   consumers (`app/admin/audit/page.tsx`, `app/admin/dashboard/page.tsx`)
+   now use the real field names.
+
+**Confirmed still broken, not a quick fix** — admin product moderation
+(`admin/products`, `lib/api/admin/products.ts`): `GetProductsResponse` has
+almost nothing in common with `AdminProductSchema`. Field names differ
+(`productId` not `id`, `approvalStatus` not `status`, `brandName`/
+`categoryName` not `brand`/`categoryLabel`, `primaryImageUrl` not
+`imageUrl`, `submittedByVendorId` not `vendorId`) — mechanical renames would
+fix those — but there is **no `price` field on the response at all**, which
+`AdminProductSchema` requires as non-nullable. This is the Product/Offer
+split (§2.5) surfacing concretely: price is genuinely an Offer concept, not
+a Product one, so this needs the same real redesign §2.5 already calls for,
+not a field-rename patch. Currently invisible in a fresh/empty environment
+(an empty result array never exercises the per-row schema), so this will
+look fine until real vendor-submitted products exist and get listed.
+
+Also found and fixed live: `POST auth/login/totp` 500s even on a *correct*,
+fresh TOTP code (`ZitadelMfaService.LoginTotpAsync`'s `GetSessionAsync` call
+right after the code check fails to deserialize Zitadel's response), and
+wrong-code paths (`LoginTotpAsync`, `ConfirmTotpEnrollmentAsync`,
+`ConfirmPasswordResetAsync`, `VerifyEmailAsync`) 500 instead of returning a
+normal error because they only catch Zitadel's 401/412, not the 400 it
+actually sends for an invalid code. Both are backend-side, not frontend —
+see `docs/BACKEND_TODO.md` for the short version to hand to that team.
+
 ---
 
 ## 1. Running the backend locally
@@ -676,11 +741,13 @@ same one-by-one ordinal/case treatment §2.2's two fixes used, as each is exerci
    `lib/auth/session.ts`'s claim names~~ — **done**, see above.
 3. ~~**Frontend**: fix the two wrong paths and the admin permission verbs~~ —
    **done** (§2.4, §2.6, using the `perm:` column in §3 as the source of truth).
-   `ADMIN_DATA_SOURCE=live` is code-ready for the parts with a live branch
-   (vendors, staff, roles, products moderation) but **not yet run against the
-   live backend** the way auth was — the response-shape caveats in §2.2 (enum
-   fields, e.g. vendor/product status) likely still need per-field fixes the
-   same way accountType did, just not yet hit and confirmed.
+   ~~`ADMIN_DATA_SOURCE=live` not yet run against the live backend~~ —
+   **done (2026-09-02)**, see §0b: Vendors, Staff/Users, Product Categories,
+   and the Audit log all confirmed working live, three real bugs found and
+   fixed along the way. Products moderation is the one part still broken —
+   not a per-field enum fix like accountType needed, but the deeper
+   Product/Offer split (§2.5/§0b) — `price` doesn't exist on the response at
+   all.
 4. **Backend**: add a way for the frontend to know the current user's permissions
    (§2.6) — needed before `PERMISSIONS_SOURCE=live` can do anything but return
    `false` everywhere.

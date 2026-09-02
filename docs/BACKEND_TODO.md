@@ -3,6 +3,15 @@
 
 Simple version. Tested live 2026-09-02.
 
+## Heads up — one thing we already worked around
+
+On every list endpoint (vendors, staff, products, categories, etc.), the
+`PageNumber`, `PageSize`, and `OrderBy` query params all have default values
+in the C# code, but the server still rejects the request with a 400 if you
+don't send them. So the defaults don't actually work — we just always send
+all three now. Not blocking us, just flagging it in case it's not what you
+intended.
+
 ## Bugs to fix
 
 1. **Login with authenticator app (TOTP) doesn't work.**
@@ -38,12 +47,16 @@ Simple version. Tested live 2026-09-02.
 ## What's already working well
 
 Register, login, get current user, refresh session, logout, logout from all
-devices, forgot password, resend verification email, and starting
-authenticator setup (QR code + secret) — all confirmed working.
+devices, forgot password, resend verification email, starting authenticator
+setup (QR code + secret), and the admin pages for Vendors, Staff/Users,
+Product Categories, and the Audit log — all confirmed working now.
 
 ## Older, already-known items (not new)
 
 - No endpoint yet for checking permissions.
-- Product and Offer are separate things on the backend, but frontend
-  treats them as one "Product" — needs a conversation, not just a fix.
+- **Admin product list (`admin/products`) has no `price` on it at all.**
+  We already knew Product and Offer are separate things on the backend, but
+  we confirmed this specific gap now: the product list response really has
+  no price field, so we can't show one. Needs a real conversation about how
+  Product/Offer should map to what admins see, not a quick fix.
 - No endpoint to list all buyers/customers for admin.
