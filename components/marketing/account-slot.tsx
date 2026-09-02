@@ -4,6 +4,7 @@ import { buttonVariants } from "@/components/ui/button";
 import { AccountMenu } from "@/components/ui/account-menu";
 import { verifySession } from "@/lib/auth/dal";
 import type { AccountType } from "@/lib/auth/session";
+import { cn } from "@/lib/utils";
 
 /**
  * The account-aware slot every public header (SiteHeader on the marketing
@@ -37,10 +38,31 @@ function accountMenuLinks(accountType: AccountType): { href: string; label: stri
   return links;
 }
 
-export async function AccountSlot() {
+export async function AccountSlot({ withSignUp }: { withSignUp?: boolean } = {}) {
   const session = await verifySession();
 
   if (!session) {
+    // SiteHeader (the marketing homepage) wants both a plain "Login" link
+    // and a distinct "Sign Up" CTA, matching the original two-button guest
+    // header; MarketplaceHeader only ever had the one "Login" button, so it
+    // omits withSignUp and keeps its existing look.
+    if (withSignUp) {
+      return (
+        <>
+          <Link href="/login" className="text-sm whitespace-nowrap text-ink-soft hover:text-ink">
+            Login
+          </Link>
+          <Link
+            href="/register"
+            className={buttonVariants({
+              className: "rounded-lg bg-ink px-4 font-medium whitespace-nowrap !text-white hover:bg-ink/85 sm:px-6",
+            })}
+          >
+            Sign Up
+          </Link>
+        </>
+      );
+    }
     return (
       <Link
         href="/login"
@@ -63,6 +85,6 @@ export async function AccountSlot() {
   );
 }
 
-export function AccountSlotFallback() {
-  return <span className="block h-10 w-24 animate-pulse rounded-lg bg-mint" aria-hidden />;
+export function AccountSlotFallback({ withSignUp }: { withSignUp?: boolean } = {}) {
+  return <span className={cn("block h-10 animate-pulse rounded-lg bg-mint", withSignUp ? "w-40" : "w-24")} aria-hidden />;
 }

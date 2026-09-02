@@ -1,13 +1,17 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { User, Mail, Lock, Eye, EyeOff, CheckCircle2 } from "lucide-react";
+import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import type { AccountType } from "@/lib/api/auth";
 import { PhoneNumberField } from "@/components/ui/phone-input-field";
-import { registerAction, type RegisterState } from "./actions";
+import { ResendVerificationButton } from "@/components/auth/resend-verification-button";
+import { registerAction, checkEmailAvailabilityAction, type RegisterState } from "./actions";
 
 const initialState: RegisterState = {};
+
+type EmailCheckStatus = "idle" | "checking" | "available" | "taken";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-white py-3 pr-11 pl-11 text-sm text-ink shadow-sm outline-none transition-shadow focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
@@ -15,6 +19,41 @@ const fieldClass =
 export function RegisterForm({ accountType, roleLabel }: { accountType: AccountType; roleLabel: string }) {
   const [state, formAction, pending] = useActionState(registerAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
+  const [emailStatus, setEmailStatus] = useState<EmailCheckStatus>("idle");
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const requestIdRef = useRef(0);
+
+  // Live-as-you-type check (debounced 500ms) — see lib/api/auth.ts's
+  // checkEmailAvailability comment for why live mode can't answer this yet;
+  // "idle" there just means the input stays quiet, not wrong.
+  function handleEmailChange(value: string) {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    const trimmed = value.trim();
+    if (!trimmed.includes("@")) {
+      requestIdRef.current += 1;
+      setEmailStatus("idle");
+      return;
+    }
+    setEmailStatus("checking");
+    const requestId = ++requestIdRef.current;
+    debounceRef.current = setTimeout(() => {
+      checkEmailAvailabilityAction(trimmed)
+        .then((result) => {
+          if (requestIdRef.current !== requestId) return; // a newer keystroke superseded this one
+          setEmailStatus(result.available === null ? "idle" : result.available ? "available" : "taken");
+        })
+        .catch(() => {
+          if (requestIdRef.current !== requestId) return;
+          setEmailStatus("idle");
+        });
+    }, 500);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, []);
 
   if (state.success) {
     return (
@@ -29,6 +68,7 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
           <span className="font-medium text-ink">{state.success.email}</span>
           {state.success.verificationEmailSent ? ". Verify your email to finish setting up." : "."}
         </p>
+        {state.success.verificationEmailSent && <ResendVerificationButton userId={state.success.userId} />}
         <Link
           href="/login"
           className="inline-block w-full rounded-xl bg-ink px-6 py-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85"
@@ -90,10 +130,30 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
             type="email"
             autoComplete="email"
             required
-            className={fieldClass}
+            onChange={(e) => handleEmailChange(e.target.value)}
+            className={cn(fieldClass, "pr-11", emailStatus === "taken" && "border-[#c0392b]/40")}
             placeholder="you@clinic.com"
           />
+          {emailStatus === "checking" && (
+            <Loader2 className="absolute top-1/2 right-4 size-4 -translate-y-1/2 animate-spin text-text-muted" aria-hidden />
+          )}
+          {emailStatus === "available" && (
+            <CheckCircle2 className="absolute top-1/2 right-4 size-4 -translate-y-1/2 text-verified" aria-hidden />
+          )}
+          {emailStatus === "taken" && (
+            <XCircle className="absolute top-1/2 right-4 size-4 -translate-y-1/2 text-[#c0392b]" aria-hidden />
+          )}
         </div>
+        {emailStatus === "taken" && (
+          <p className="mt-1.5 text-xs text-[#c0392b]">
+            An account with this email already exists —{" "}
+            <Link href="/login" className="font-medium underline hover:text-ink">
+              log in instead
+            </Link>
+            ?
+          </p>
+        )}
+        {emailStatus === "available" && <p className="mt-1.5 text-xs text-verified">This email is available.</p>}
       </div>
 
       <PhoneNumberField id="phone" name="phone" label="Phone (optional)" />

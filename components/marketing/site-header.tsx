@@ -32,8 +32,8 @@ export function SiteHeader() {
         </div>
 
         <div className="flex items-center gap-3 sm:gap-6 justify-self-end">
-          <Suspense fallback={<AccountSlotFallback />}>
-            <AccountSlot />
+          <Suspense fallback={<AccountSlotFallback withSignUp />}>
+            <AccountSlot withSignUp />
           </Suspense>
         </div>
       </div>

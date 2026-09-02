@@ -1,11 +1,23 @@
 "use server";
 
-import { register, AccountTypeSchema } from "@/lib/api/auth";
+import { register, checkEmailAvailability, AccountTypeSchema } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
+
+/** `available: null` means the check couldn't be done (live mode — see
+ * lib/api/auth.ts's checkEmailAvailability comment) — register-form.tsx
+ * treats that as "say nothing" rather than a wrong tick either way. */
+export async function checkEmailAvailabilityAction(email: string): Promise<{ available: boolean | null }> {
+  const trimmed = email.trim();
+  if (!trimmed || !trimmed.includes("@")) {
+    return { available: null };
+  }
+  const available = await checkEmailAvailability(trimmed);
+  return { available };
+}
 
 export interface RegisterState {
   error?: string;
-  success?: { email: string; verificationEmailSent: boolean };
+  success?: { userId: string; email: string; verificationEmailSent: boolean };
 }
 
 const REGISTRABLE_ACCOUNT_TYPES = ["Customer", "Vendor"] as const;
@@ -41,7 +53,7 @@ export async function registerAction(_prevState: RegisterState, formData: FormDa
       password,
       accountType: accountTypeParsed.data,
     });
-    return { success: { email, verificationEmailSent: response.verificationEmailSent } };
+    return { success: { userId: response.userId, email, verificationEmailSent: response.verificationEmailSent } };
   } catch (error) {
     if (error instanceof ApiError && error.status === 409) {
       return { error: "An account with that email already exists." };

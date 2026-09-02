@@ -7,11 +7,20 @@ import {
   clearMockSessionCookies,
   createMockUser,
   findMockUserById,
+  findMockUserByEmail,
   rotateMockSession,
   setMockSessionCookies,
 } from "./mocks/auth-store";
+import {
+  isMockTotpEnabled,
+  startMockTotpEnrollment,
+  confirmMockTotpEnrollment,
+  removeMockTotp,
+  validateMockTotpCode,
+} from "./mocks/security-store";
 import { verifySession } from "@/lib/auth/dal";
 import { normalizeAccountType } from "@/lib/auth/session";
+import { getTotpHint } from "@/lib/auth/totp-hint";
 
 /**
  * Adapter over the real, already-shipped Zitadel-backed auth endpoints (see
@@ -110,6 +119,20 @@ const CurrentUserResponseSchema = z.object({
 });
 export type CurrentUser = z.infer<typeof CurrentUserResponseSchema>;
 
+/**
+ * Live-as-you-type email check on the register form (register-form.tsx) —
+ * `null` means "can't tell" rather than a false green tick/red mark: no
+ * backend endpoint exists to check this without actually registering (see
+ * docs/BACKEND_TODO.md), so live mode always returns null. Mock mode is a
+ * real check against the same store register() itself reads/writes.
+ */
+export async function checkEmailAvailability(email: string): Promise<boolean | null> {
+  if (SOURCE === "mock") {
+    return !findMockUserByEmail(email);
+  }
+  return null;
+}
+
 export interface RegisterInput {
   email: string;
   phone?: string;
@@ -121,8 +144,9 @@ export interface RegisterInput {
 
 export async function register(input: RegisterInput): Promise<RegisterResponse> {
   if (SOURCE === "mock") {
-    // Auto-verified: this app has no verify-email page/action yet, so requiring
-    // a real verification step would be a dead end in mock mode.
+    // Auto-verified in mock mode only — live mode's verificationEmailSent
+    // reflects the backend's real answer; app/(auth)/verify-email is the
+    // real page that link/code lands on now.
     const user = createMockUser(input);
     return { userId: user.userId, verificationEmailSent: true };
   }
@@ -146,8 +170,14 @@ export interface LoginInput {
 export async function login(input: LoginInput): Promise<LoginResponse> {
   if (SOURCE === "mock") {
     const user = authenticateMockUser(input.loginName, input.password);
-    // No seeded/created mock user carries MFA, so this always completes outright —
-    // see loginTotp/loginStartOtpEmail below for why MFA isn't modeled in mock mode.
+    // A mock user who's gone through the real TOTP enrollment flow (see
+    // startTotpEnrollment/confirmTotpEnrollment below) genuinely gets
+    // challenged here, same as live — flowId doubles as the userId since
+    // there's no real Zitadel session-flow concept in mock mode, and
+    // loginTotp's mock branch reads it back the same way.
+    if (isMockTotpEnabled(user.userId)) {
+      return { mfaRequired: true, completed: false, flowId: user.userId, availableMethods: ["Totp"] };
+    }
     await setMockSessionCookies(user);
     return { mfaRequired: false, completed: true, flowId: null, availableMethods: [] };
   }
@@ -165,9 +195,13 @@ export async function login(input: LoginInput): Promise<LoginResponse> {
 
 export async function loginTotp(flowId: string, code: string): Promise<void> {
   if (SOURCE === "mock") {
-    // Unreachable from the current UI (no mock user ever returns mfaRequired:
-    // true from login()), but kept honest rather than silently no-op-ing.
-    throw new ApiError(501, "MFA is not modeled in mock mode.");
+    // flowId is the userId here — see login()'s mock branch above.
+    const user = findMockUserById(flowId);
+    if (!user || !validateMockTotpCode(user.userId, code)) {
+      throw new ApiError(401, "That code didn't match. Check your authenticator app and try again.");
+    }
+    await setMockSessionCookies(user);
+    return;
   }
   const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/login/totp`, {
     body: { flowId, code },
@@ -273,4 +307,119 @@ export async function logout(): Promise<void> {
   }
   const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/logout`);
   await relayCookies(setCookieHeaders);
+}
+
+/** Terminates every Zitadel session for the current user, not just this
+ * browser's — the mock branch can only clear this one cookie (there's no
+ * concept of "other devices" in the mock store), so it's an honest
+ * best-effort rather than a faithful simulation. */
+export async function logoutAllDevices(): Promise<void> {
+  if (SOURCE === "mock") {
+    await clearMockSessionCookies();
+    return;
+  }
+  const { setCookieHeaders } = await apiClient.post<unknown>(`${BASE}/logout-all`);
+  await relayCookies(setCookieHeaders);
+}
+
+/**
+ * Password reset — request/confirm sends delegate to Zitadel on the backend
+ * (RequestPasswordResetHandler/ConfirmPasswordResetHandler both call
+ * IZitadelAuthService directly), which emails the code itself; this app
+ * never sees it. ForgotPassword always resolves (backend returns 204
+ * unconditionally, "to avoid revealing whether the email is registered"),
+ * so there's no separate not-found error to surface here. Mock mode has no
+ * real user-facing email to send the code to, so both throw rather than
+ * pretend a code exists — same honesty as the OTP-email login functions.
+ */
+export async function forgotPassword(email: string): Promise<void> {
+  if (SOURCE === "mock") {
+    return;
+  }
+  await apiClient.post(`${BASE}/forgot-password`, { body: { email }, withCredentials: false });
+}
+
+export async function resetPassword(userId: string, code: string, newPassword: string): Promise<void> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "Password reset isn't modeled in mock mode — there's no real email to receive a code on.");
+  }
+  await apiClient.post(`${BASE}/reset-password`, { body: { userId, code, newPassword }, withCredentials: false });
+}
+
+/** Email verification — same "delegates to Zitadel, emails a code, mock has
+ * nowhere to send it" situation as password reset above. */
+export async function verifyEmail(userId: string, code: string): Promise<void> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "Email verification isn't modeled in mock mode.");
+  }
+  await apiClient.post(`${BASE}/verify-email`, { body: { userId, code }, withCredentials: false });
+}
+
+export async function resendVerificationEmail(userId: string): Promise<void> {
+  if (SOURCE === "mock") {
+    throw new ApiError(501, "Email verification isn't modeled in mock mode.");
+  }
+  await apiClient.post(`${BASE}/resend-verification`, { body: { userId }, withCredentials: false });
+}
+
+export interface TotpEnrollment {
+  /** otpauth:// URI — render as a QR code for an authenticator app to scan. */
+  uri: string;
+  /** Raw secret, for manual entry when a QR code can't be scanned. */
+  secret: string;
+}
+
+const TotpEnrollmentSchema = z.object({ uri: z.string(), secret: z.string() });
+
+/**
+ * Authenticator-app (TOTP) enrollment for the *currently signed-in* user —
+ * unlike login()/register(), these three are authenticated calls (the
+ * backend reads the user id off the access token, not a request body).
+ * Mock mode is fully real here (lib/api/mocks/security-store.ts), not a
+ * stub — no email delivery is involved, so there's nothing mock mode can't
+ * faithfully reproduce: a real secret, a real otpauth:// URI, real code
+ * validation with the same time-window tolerance the live backend/an actual
+ * authenticator app both use.
+ */
+export async function startTotpEnrollment(): Promise<TotpEnrollment> {
+  if (SOURCE === "mock") {
+    const session = await verifySession();
+    if (!session) throw new ApiError(401, "Not signed in.");
+    return startMockTotpEnrollment(session.userId, session.email);
+  }
+  const { data } = await apiClient.post<unknown>(`${BASE}/mfa/totp/setup`);
+  return TotpEnrollmentSchema.parse(data);
+}
+
+export async function confirmTotpEnrollment(code: string): Promise<void> {
+  if (SOURCE === "mock") {
+    const session = await verifySession();
+    if (!session) throw new ApiError(401, "Not signed in.");
+    confirmMockTotpEnrollment(session.userId, code);
+    return;
+  }
+  await apiClient.post(`${BASE}/mfa/totp/verify`, { body: { code } });
+}
+
+export async function removeTotp(): Promise<void> {
+  if (SOURCE === "mock") {
+    const session = await verifySession();
+    if (!session) throw new ApiError(401, "Not signed in.");
+    removeMockTotp(session.userId);
+    return;
+  }
+  await apiClient.delete(`${BASE}/mfa/totp`);
+}
+
+/**
+ * Whether the current user has an authenticator app enrolled — real,
+ * server-tracked truth in mock mode; a best-effort UI hint in live mode
+ * since no backend endpoint reports this (see lib/auth/totp-hint.ts).
+ */
+export async function getTotpEnabled(): Promise<boolean> {
+  if (SOURCE === "mock") {
+    const session = await verifySession();
+    return session ? isMockTotpEnabled(session.userId) : false;
+  }
+  return getTotpHint();
 }

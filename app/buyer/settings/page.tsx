@@ -1,9 +1,9 @@
 import { requireAccountType } from "@/lib/auth/dal";
-import { getCurrentUser } from "@/lib/api/auth";
+import { getCurrentUser, getTotpEnabled } from "@/lib/api/auth";
 import { getDeliveryAddress } from "@/lib/api/buyer-profile";
-import { getMfaPreference } from "@/lib/api/security";
 import { DeliveryAddressForm } from "@/components/buyer/delivery-address-form";
 import { MfaSettings } from "@/components/buyer/mfa-settings";
+import { LogoutAllDevicesButton } from "@/components/buyer/logout-all-devices-button";
 
 export const instant = false; // requireAccountType reads cookies — genuinely dynamic
 
@@ -19,7 +19,7 @@ function splitName(displayName: string): { first: string; last: string } {
  * is actually editable. */
 export default async function BuyerSettingsPage() {
   await requireAccountType("buyer", "/buyer/settings");
-  const [user, address, mfaPreference] = await Promise.all([getCurrentUser(), getDeliveryAddress(), getMfaPreference()]);
+  const [user, address, totpEnabled] = await Promise.all([getCurrentUser(), getDeliveryAddress(), getTotpEnabled()]);
   const { first, last } = splitName(user?.displayName ?? "");
 
   return (
@@ -54,7 +54,11 @@ export default async function BuyerSettingsPage() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
-        <MfaSettings initialMethod={mfaPreference.method} />
+        <MfaSettings initialEnabled={totpEnabled} />
+      </div>
+
+      <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
+        <LogoutAllDevicesButton />
       </div>
     </div>
   );

@@ -36,15 +36,29 @@ export function ConfirmActionButton({
    * until a form is ready) — without this the wrapping span would still open
    * the modal on a click the inner button itself ignored. */
   disabled?: boolean;
-  onConfirm: () => Promise<void>;
+  /** Most callers return void — the modal just closes on success. Returning
+   * `{ error }` instead (e.g. a Server Action's usual ActionResult shape)
+   * keeps the modal open and shows the message, rather than the failure
+   * silently vanishing along with a closed dialog. */
+  onConfirm: () => Promise<void | { error?: string }>;
 }) {
   const [open, setOpen] = useState(false);
   const [pending, startTransition] = useTransition();
+  const [confirmError, setConfirmError] = useState<string | null>(null);
+
+  function close() {
+    setOpen(false);
+    setConfirmError(null);
+  }
 
   function confirm() {
     startTransition(async () => {
-      await onConfirm();
-      setOpen(false);
+      const result = await onConfirm();
+      if (result?.error) {
+        setConfirmError(result.error);
+        return;
+      }
+      close();
     });
   }
 
@@ -71,7 +85,7 @@ export function ConfirmActionButton({
               </span>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={close}
                 aria-label="Close"
                 className="flex size-8 items-center justify-center rounded-full text-text-muted hover:bg-mint hover:text-ink"
               >
@@ -81,6 +95,7 @@ export function ConfirmActionButton({
 
             <h2 className="mt-4 text-lg font-semibold text-ink">{title}</h2>
             <p className="mt-2 text-sm text-text-muted">{description}</p>
+            {confirmError && <p className="mt-2 text-sm text-[#c0392b]">{confirmError}</p>}
 
             <div className="mt-6 flex gap-2">
               <button
@@ -96,7 +111,7 @@ export function ConfirmActionButton({
               </button>
               <button
                 type="button"
-                onClick={() => setOpen(false)}
+                onClick={close}
                 disabled={pending}
                 className="rounded-lg border border-line px-5 py-2.5 text-sm font-medium text-ink-soft hover:bg-cream"
               >
