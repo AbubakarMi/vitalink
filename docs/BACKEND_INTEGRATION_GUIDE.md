@@ -137,6 +137,64 @@ are confirmed directly from the backend source (`GetUploadedDocumentsResponse`,
 `GetDocumentDownloadUrlResponse`, `VendorRoutes.Administration`), same
 standard as the audit-log fix above.
 
+### 0c. Status (2026-09-02) — `PRODUCTS_DATA_SOURCE=live`: real Product/Offer catalog + real cart
+
+Built the actual replacement for the Product/Offer split flagged as blocking
+in §2.5/§0b: a new, separate `lib/api/marketplace.ts` adapter (the real
+`MarketplaceProductCard`/`MarketplaceProductDetails`/`MarketplaceOfferDetails`
+shapes — price-per-offer, GUID category/brand ids, no vendor identity on an
+offer at all) and a new `lib/api/cart.ts` adapter for the real backend cart
+(`GetCart`/`AddCartItem`/`ChangeCartItemQuantity`/`RemoveCartItem`/
+`ClearCart`/`GetCheckoutQuote`/`ClaimGuestCart`). Both gated by
+`PRODUCTS_DATA_SOURCE=live`, reusing the existing flag rather than adding a
+new one. UI: a Buy Box on the product detail page (cheapest offer selected
+by default, other offers collapsible, no seller name shown — the response
+genuinely doesn't expose one, confirmed in §0's Marketplace domain notes) and
+a live cart page that merges cart items with `GetCheckoutQuote`'s priced
+lines client-side.
+
+**Found and fixed one real frontend bug in older code while wiring this up**
+(not a backend issue): `lib/api/products.ts` — the pre-existing flat-`Product`
+adapter used by the homepage and other not-yet-migrated pages — already had
+its own half-built `SOURCE === "live"` branches on `listProducts()` and
+`getProductBySlug()`, left over from before this catalog was understood
+(their own comments called them "TODO before this can actually work"). Both
+functions are marked `"use cache"`, and their live branches called
+`apiClient.get()`, which reads `cookies()` for credential forwarding —
+disallowed inside a `"use cache"` scope under Next's Cache Components
+(`Route / used cookies() inside "use cache"`). Since they share
+`PRODUCTS_DATA_SOURCE` with the new, correct `marketplace.ts` adapter,
+flipping the flag to test the new code also activated this old, broken,
+never-actually-tested branch — and crashed the *homepage*, which has nothing
+to do with the marketplace listing. Fixed by deleting those dead live
+branches; `lib/api/products.ts` is now unconditionally mock (it's superseded
+by `marketplace.ts` for the pages that have migrated; the pages that
+haven't — homepage, vendor's own listing — keep working exactly as before,
+regardless of `PRODUCTS_DATA_SOURCE`).
+
+**Live-verified (2026-09-02):**
+- `/products` (live marketplace listing) renders correctly — currently an
+  empty state, since this fresh environment has zero approved vendor
+  products (same root cause as §0b's empty vendor-applications finding).
+- `/api/cart` (new Route Handler, since cart reads need to run client-side —
+  cookie-mutation is only legal from a Server Action or Route Handler, never
+  a Server Component render) returns 200 and mints a real
+  `__Host-vitalink_cart` guest cookie; response shape is exactly
+  `{cart: {id, ownerType: "Guest", status: "Active", items: []}, quote: null}`
+  — `quote` correctly null since `GetCheckoutQuote` is auth-only and this
+  request was anonymous.
+- `/buyer/cart` correctly 307-redirects an anonymous visitor to
+  `/login?redirect=%2Fbuyer%2Fcart`.
+
+**Not yet click-tested:** an actual product detail page / Buy Box /
+add-to-cart / priced-quote flow, since there is no live product to click
+into yet — same blocker as §0b's admin-products and vendor-documents
+findings. Needs at least one vendor product to go through submission +
+admin approval first. The schema/adapter code is confirmed directly against
+the backend's own `Application.Features.Marketplace` and
+`Application.Features.Carts` source (record-by-record, same standard as the
+other fixes in this section), just not exercised through a browser yet.
+
 ---
 
 ## 1. Running the backend locally

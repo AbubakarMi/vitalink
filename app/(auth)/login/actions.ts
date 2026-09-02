@@ -5,6 +5,8 @@ import { login, loginTotp, loginStartOtpEmail, loginVerifyOtpEmail, resendLoginO
 import { ApiError } from "@/lib/api/client";
 import { verifySession } from "@/lib/auth/dal";
 import { dashboardPathForAccountType } from "@/lib/auth/route-groups";
+import { MARKETPLACE_LIVE } from "@/lib/api/marketplace";
+import { claimGuestCartOnLoginAction } from "@/lib/cart/live-actions";
 
 export interface LoginState {
   error?: string;
@@ -14,6 +16,11 @@ export interface LoginState {
 }
 
 async function redirectToDashboard(): Promise<never> {
+  // Merge any guest cart into the now-authenticated session before routing
+  // away — only meaningful once the real backend cart is in play.
+  if (MARKETPLACE_LIVE) {
+    await claimGuestCartOnLoginAction();
+  }
   const session = await verifySession();
   return redirect(session ? dashboardPathForAccountType(session.accountType) : "/");
 }

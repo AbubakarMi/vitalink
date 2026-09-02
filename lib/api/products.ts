@@ -1,6 +1,5 @@
 import "server-only";
 import { z } from "zod";
-import { apiClient } from "./client";
 import { mockProducts } from "./mocks/products";
 import { type SortOption } from "./product-sort";
 
@@ -75,13 +74,18 @@ export type Product = z.infer<typeof ProductSchema>;
 export { ProductSchema };
 
 /**
- * PRODUCTS_DATA_SOURCE flips this adapter from mock to live once the backend
- * ships a Product API (design doc §1, §4) — the path below is a placeholder,
- * not a real endpoint; update it when that lands. Every caller gets the same
- * Zod-validated shape regardless of source.
+ * Always mock. The real catalog is Product + Offer as two related entities
+ * (one product, many vendor offers at different price/stock/condition), not
+ * this flat Product shape — see lib/api/marketplace.ts (gated by the same
+ * PRODUCTS_DATA_SOURCE flag) for the real, live adapter used by the
+ * marketplace listing/detail/cart pages. This module stays mock-only for the
+ * pages not yet migrated (homepage feed, vendor's own listing, mock-mode
+ * similar-products) so flipping PRODUCTS_DATA_SOURCE=live doesn't also try
+ * to run these functions' old, never-finished live branches (they read
+ * cookies() for credential-forwarding inside a "use cache" scope, which
+ * Next's Cache Components disallows — confirmed 2026-09-02 when this crashed
+ * the homepage on first live test).
  */
-const SOURCE = process.env.PRODUCTS_DATA_SOURCE ?? "mock";
-
 export interface ListProductsParams {
   categorySlug?: string;
   search?: string;
@@ -97,22 +101,6 @@ export interface ListProductsParams {
 
 export async function listProducts(params: ListProductsParams = {}): Promise<Product[]> {
   "use cache";
-  if (SOURCE === "live") {
-    // TODO before this can actually work: the real route is
-    // "marketplace/products" (fixed below — was "/catalog/products", a wrong
-    // guess), but that's not sufficient on its own. The backend's catalog is
-    // Product + Offer as two related entities (one product, many vendor
-    // offers at different price/stock/condition) — GetMarketplaceProducts
-    // returns MarketplaceProductCard (productId/primaryImageUrl/brandName/
-    // categoryName/startingPrice/offerCount/…), not this flat Product shape,
-    // and takes brandId/categoryId (GUIDs, resolved via marketplace/brands
-    // and marketplace/categories) + term/pageNumber/sort params, not the
-    // categorySlug/brand/search/page/sort this function sends. Needs real
-    // product/UX design work, not a param rename — see
-    // docs/BACKEND_INTEGRATION_GUIDE.md §2.5 before flipping this live.
-    const { data } = await apiClient.get<unknown>("/marketplace/products", { params });
-    return z.array(ProductSchema).parse(data);
-  }
   return z.array(ProductSchema).parse(filterMockProducts(params));
 }
 
@@ -162,13 +150,6 @@ export async function getProductsByIds(ids: string[]): Promise<Product[]> {
 
 export async function getProductBySlug(slug: string): Promise<Product | null> {
   "use cache";
-  if (SOURCE === "live") {
-    // Real route is "marketplace/products/slug/{slug}" (MarketplaceEndpoints.
-    // GetProductBySlug) — note the "/slug/" segment, not the slug appended
-    // directly. Same response-shape caveat as listProducts() above.
-    const { data } = await apiClient.get<unknown>(`/marketplace/products/slug/${slug}`);
-    return data ? ProductSchema.parse(data) : null;
-  }
   const found = mockProducts.find((product) => product.slug === slug);
   return found ? ProductSchema.parse(found) : null;
 }
