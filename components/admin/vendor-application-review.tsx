@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import Image from "next/image";
 import Link from "next/link";
-import { Check, X, FileDown, ExternalLink } from "lucide-react";
+import { Check, X, ExternalLink } from "lucide-react";
 import { approveVendorAction, rejectVendorAction } from "@/app/admin/actions";
 import { DocumentPreviewModal } from "@/components/admin/document-preview-modal";
 import { StatusPill } from "@/components/admin/status-pill";
@@ -113,7 +113,7 @@ export function VendorApplicationReview({
       <div className="p-6">
         {tab === "identity" && <IdentityTab vendor={vendor} />}
         {tab === "business" && <BusinessProfileTab vendor={vendor} />}
-        {tab === "compliance" && <ComplianceTab documents={documents} />}
+        {tab === "compliance" && <ComplianceTab vendorId={vendor.id} documents={documents} />}
         {tab === "products" && <ProductsTab products={products} />}
       </div>
 
@@ -239,7 +239,7 @@ function BusinessProfileTab({ vendor }: { vendor: AdminVendor }) {
   );
 }
 
-function ComplianceTab({ documents }: { documents: VendorDocument[] | null }) {
+function ComplianceTab({ vendorId, documents }: { vendorId: string; documents: VendorDocument[] | null }) {
   if (documents === null) {
     return <p className="text-sm text-text-muted">Compliance documents aren&apos;t available for this vendor yet.</p>;
   }
@@ -260,18 +260,7 @@ function ComplianceTab({ documents }: { documents: VendorDocument[] | null }) {
             {doc.uploaded ? (
               <>
                 <span className="truncate text-sm text-ink-soft">{doc.fileName ?? doc.label}</span>
-                <span className="flex shrink-0 gap-2">
-                  {doc.previewUrl && <DocumentPreviewModal label={doc.label} previewUrl={doc.previewUrl} />}
-                  {doc.downloadUrl && (
-                    <a
-                      href={doc.downloadUrl}
-                      className="flex items-center gap-1.5 rounded-lg bg-verified px-3 py-1.5 text-xs font-medium text-white hover:bg-verified-hover"
-                    >
-                      <FileDown className="size-3.5" aria-hidden />
-                      Download
-                    </a>
-                  )}
-                </span>
+                <DocumentPreviewModal vendorId={vendorId} documentId={doc.id} label={doc.label} />
               </>
             ) : (
               <p className="text-sm text-text-muted">Not uploaded</p>

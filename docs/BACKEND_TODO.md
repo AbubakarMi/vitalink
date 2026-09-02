@@ -49,7 +49,7 @@ intended.
 Register, login, get current user, refresh session, logout, logout from all
 devices, forgot password, resend verification email, starting authenticator
 setup (QR code + secret), and the admin pages for Vendors, Staff/Users,
-Product Categories, and the Audit log — all confirmed working now.
+Product Categories, and the Audit log all confirmed working now.
 
 ## Older, already-known items (not new)
 

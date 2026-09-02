@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { requireAccountType } from "@/lib/auth/dal";
 import { hasPermission } from "@/lib/auth/permissions";
 import { approveVendor, rejectVendor, markVendorUnderReview } from "@/lib/api/admin/vendors";
+import { getVendorDocumentUrl } from "@/lib/api/admin/vendor-documents";
 import { approveAdminProduct, rejectAdminProduct } from "@/lib/api/admin/products";
 import { createStaff, approveStaff, suspendStaff, type CreateStaffInput } from "@/lib/api/admin/staff";
 import { processBulkTransfer } from "@/lib/api/admin/settlements";
@@ -76,6 +77,19 @@ export async function markVendorUnderReviewAction(vendorId: string): Promise<Act
     return {};
   } catch (err) {
     return { error: err instanceof ApiError ? err.message : "Couldn't update this vendor." };
+  }
+}
+
+/** On-demand — the real backend's download link is a presigned URL that
+ * expires, so this is fetched when the admin actually opens a document, not
+ * eagerly for every document on the compliance tab. */
+export async function getVendorDocumentUrlAction(vendorId: string, documentId: string): Promise<ActionResult & { url?: string }> {
+  try {
+    await requireAdminPermission("Vendors", "Manage");
+    const url = await getVendorDocumentUrl(vendorId, documentId);
+    return { url };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't load this document." };
   }
 }
 

@@ -121,6 +121,22 @@ normal error because they only catch Zitadel's 401/412, not the 400 it
 actually sends for an invalid code. Both are backend-side, not frontend —
 see `docs/BACKEND_TODO.md` for the short version to hand to that team.
 
+One more frontend-side fix, same session: `lib/api/admin/vendor-documents.ts`
+(`GetVendorDocuments`, admin vendor review's Compliance tab) assumed a flat
+array with `required`/`previewUrl`/`downloadUrl` on every row. The real
+response (`GetUploadedDocumentsResponse`) groups uploaded documents by type
+and carries neither a "required but missing" concept (that's the vendor's
+own onboarding-field answers, not surfaced by this endpoint) nor any
+preview/download URL at all — that's a **separate**, on-demand call
+(`GetVendorDocumentDownloadUrl`, a presigned URL that expires) fetched only
+when an admin actually opens a document, not eagerly for the whole list.
+Fixed the schema and `DocumentPreviewModal` to fetch on open. Not yet
+click-tested against a real uploaded document — the local environment has
+zero vendor applications on file to test against — but the schema and route
+are confirmed directly from the backend source (`GetUploadedDocumentsResponse`,
+`GetDocumentDownloadUrlResponse`, `VendorRoutes.Administration`), same
+standard as the audit-log fix above.
+
 ---
 
 ## 1. Running the backend locally

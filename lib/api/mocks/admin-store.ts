@@ -444,19 +444,24 @@ export function markMockVendorUnderReview(vendorId: string): void {
 }
 
 export function listMockVendorDocuments(vendorId: string) {
+  return getMockVendorDetails(vendorId).documents;
+}
+
+/** Preview/download link for one document — a separate on-demand lookup
+ * (not eagerly attached to every row from listMockVendorDocuments) matching
+ * the real backend's GetVendorDocumentDownloadUrl, which returns a presigned
+ * URL per document rather than one bundled with the list response. Same
+ * mock upload endpoint the vendor onboarding flow already uses
+ * (app/api/mock-uploads/[documentId]/route.ts) — its GET handler returns a
+ * real, openable (if placeholder) response, not a dead link. */
+export function getMockVendorDocumentUrl(vendorId: string, documentId: string): string {
   const vendor = getMockVendorDetails(vendorId);
-  return vendor.documents.map((doc) => {
-    if (!doc.uploaded) return { ...doc, previewUrl: null, downloadUrl: null };
-    // Same mock upload endpoint the vendor onboarding flow already uses
-    // (app/api/mock-uploads/[documentId]/route.ts) — its GET handler now
-    // returns a real, openable (if placeholder) response, not a dead link.
-    const q = new URLSearchParams({ label: doc.label, vendor: vendor.businessLegalName });
-    return {
-      ...doc,
-      previewUrl: `/api/mock-uploads/${doc.id}?${q.toString()}`,
-      downloadUrl: `/api/mock-uploads/${doc.id}?${q.toString()}&download=1`,
-    };
-  });
+  const doc = vendor.documents.find((d) => d.id === documentId);
+  if (!doc || !doc.uploaded) {
+    throw new ApiError(404, "Document not found.");
+  }
+  const q = new URLSearchParams({ label: doc.label, vendor: vendor.businessLegalName });
+  return `/api/mock-uploads/${doc.id}?${q.toString()}`;
 }
 
 // ---- Product Categories (Configuration module) — the taxonomy admin
