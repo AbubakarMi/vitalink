@@ -2,6 +2,7 @@
 
 import { useActionState, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AccountType } from "@/lib/api/auth";
@@ -22,6 +23,13 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
   const [emailStatus, setEmailStatus] = useState<EmailCheckStatus>("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
+  // ?redirect= (most commonly /buyer/checkout, via the cart page's guest
+  // prompt — components/buyer/checkout-cta.tsx) — registering never logs
+  // you in outright (mock: still a separate login step; live: also needs
+  // email verification first), so this just carries forward to the "Go to
+  // login" link below rather than being submitted with the form itself.
+  const redirectTo = useSearchParams().get("redirect");
+  const loginHref = redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login";
 
   // Live-as-you-type check (debounced 500ms) — see lib/api/auth.ts's
   // checkEmailAvailability comment for why live mode can't answer this yet;
@@ -70,7 +78,7 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
         </p>
         {state.success.verificationEmailSent && <ResendVerificationButton userId={state.success.userId} />}
         <Link
-          href="/login"
+          href={loginHref}
           className="inline-block w-full rounded-xl bg-ink px-6 py-3.5 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85"
         >
           Go to login
@@ -147,7 +155,7 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
         {emailStatus === "taken" && (
           <p className="mt-1.5 text-xs text-[#c0392b]">
             An account with this email already exists —{" "}
-            <Link href="/login" className="font-medium underline hover:text-ink">
+            <Link href={loginHref} className="font-medium underline hover:text-ink">
               log in instead
             </Link>
             ?

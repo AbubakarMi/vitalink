@@ -5,6 +5,7 @@ import {
   dashboardPathForAccountType,
   matchProtectedPrefix,
   isBuyerPathOpenToVendors,
+  isGuestAllowedBuyerPath,
 } from "@/lib/auth/route-groups";
 
 /**
@@ -24,6 +25,12 @@ export default async function proxy(request: NextRequest) {
   const accessToken = request.cookies.get(SESSION_COOKIES.accessToken)?.value;
 
   if (!accessToken) {
+    // The cart itself is guest-accessible (see route-groups.ts's
+    // isGuestAllowedBuyerPath) — an anonymous visitor gets straight through,
+    // no refresh-cookie check needed since there's nothing to refresh.
+    if (prefix === "buyer" && isGuestAllowedBuyerPath(pathname)) {
+      return NextResponse.next();
+    }
     // No refresh cookie either -> definitely unauthenticated, redirect now.
     // A refresh cookie present -> let the page-level DAL hand off to the refresh
     // Route Handler (it needs to set cookies, which proxy.ts's response can also

@@ -6,6 +6,7 @@ import { Minus, Plus, Trash2, ArrowLeft, ImageOff, X, ShieldCheck, Truck } from 
 import { useCart, type CartItem } from "@/lib/cart/store";
 import { DELIVERY_FEE } from "@/lib/cart/constants";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
+import { CheckoutCta } from "@/components/buyer/checkout-cta";
 
 const ROW_GRID = "sm:grid-cols-[minmax(0,1fr)_110px_120px_110px_36px]";
 
@@ -18,8 +19,11 @@ const ROW_GRID = "sm:grid-cols-[minmax(0,1fr)_110px_120px_110px_36px]";
  * architecture doc §2.2) rather than relying only on the layout's check.
  * Laid out as a manifest (column-headed line items) rather than a loose
  * stack of cards — the audience is a procurement buyer, not a casual
- * shopper, so the cart should read like an itemized order, not a basket. */
-export function CartView() {
+ * shopper, so the cart should read like an itemized order, not a basket.
+ * isAuthenticated (from app/buyer/cart/page.tsx's verifySession(), guest-
+ * accessible) decides what the "Proceed to Checkout" CTA does — see
+ * components/buyer/checkout-cta.tsx. */
+export function CartView({ isAuthenticated }: { isAuthenticated: boolean }) {
   const { items, subtotal, removeItem, setQuantity, clearCart } = useCart();
   const total = items.length > 0 ? subtotal + DELIVERY_FEE : 0;
 
@@ -93,12 +97,7 @@ export function CartView() {
               <span>Total</span>
               <span>N{total.toLocaleString("en-NG")}</span>
             </div>
-            <Link
-              href="/buyer/checkout"
-              className="mt-5 flex w-full items-center justify-center rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85"
-            >
-              Proceed to Checkout
-            </Link>
+            <CheckoutCta isAuthenticated={isAuthenticated} />
 
             <div className="mt-5 space-y-2 border-t border-line pt-4 text-xs text-text-muted">
               <p className="flex items-center gap-1.5">

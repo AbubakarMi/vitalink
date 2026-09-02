@@ -3,14 +3,24 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { CreditCard, Landmark, Lock, ShieldCheck } from "lucide-react";
+import { Country } from "country-state-city";
+import { CreditCard, Landmark, Lock, ShieldCheck, Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart/store";
 import { DELIVERY_FEE } from "@/lib/cart/constants";
 import type { DeliveryAddress } from "@/lib/api/buyer-profile";
 import type { BuyerOrderItem } from "@/lib/api/buyer-orders";
-import { StateSearchField } from "@/components/ui/state-search-field";
+import { CountrySelectField, StateSelectField } from "@/components/ui/country-state-fields";
 import { completeCheckoutAction } from "@/app/buyer/checkout/actions";
+
+/** DeliveryAddress.country only ever stored a display name ("Nigeria"), so
+ * resolving it back to an ISO code (to seed StateSelectField's country
+ * lookup) is a name match, not a stored field — falls back to Nigeria,
+ * this being a Nigeria-based marketplace. */
+function resolveCountryCode(countryName: string | undefined): string {
+  if (!countryName) return "NG";
+  return Country.getAllCountries().find((c) => c.name === countryName)?.isoCode ?? "NG";
+}
 
 const fieldClass =
   "mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
@@ -26,6 +36,7 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<"card" | "bank">("card");
+  const [countryCode, setCountryCode] = useState(() => resolveCountryCode(initialAddress?.country));
 
   const total = subtotal + DELIVERY_FEE;
 
@@ -77,8 +88,18 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
           <div className="rounded-2xl border border-line bg-white p-5 sm:p-6">
             <SectionHeading step={1} label="Delivery Address" />
             <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <Field label="Country" name="country" placeholder="e.g. Nigeria" defaultValue={initialAddress?.country ?? "Nigeria"} required />
-              <StateSearchField name="state" label="State" defaultValue={initialAddress?.state} required />
+              <CountrySelectField
+                name="country"
+                defaultCountryCode={countryCode}
+                required
+                onCountryChange={(isoCode) => setCountryCode(isoCode)}
+              />
+              <StateSelectField
+                name="state"
+                countryCode={countryCode}
+                defaultValue={countryCode === resolveCountryCode(initialAddress?.country) ? initialAddress?.state : undefined}
+                required
+              />
               <Field label="City" name="city" placeholder="e.g. Enugu" defaultValue={initialAddress?.city} required />
               <Field
                 label="Street Address"
@@ -113,9 +134,7 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-sm text-text-muted">
-                Bank transfer isn&apos;t wired up yet in this preview — use Credit / Debit Card to complete checkout.
-              </p>
+              <BankTransferDetails total={total} />
             )}
           </div>
 
@@ -156,11 +175,11 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
 
           <button
             type="submit"
-            disabled={pending || method !== "card"}
+            disabled={pending}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-50"
           >
             <Lock className="size-4" aria-hidden />
-            {pending ? "Placing order…" : "Complete Payment"}
+            {pending ? "Placing order…" : method === "bank" ? "I've sent the transfer" : "Complete Payment"}
           </button>
 
           <div className="mt-4 flex items-center gap-1.5 text-xs text-text-muted">
@@ -180,6 +199,67 @@ function SectionHeading({ step, label }: { step: number; label: string }) {
         {step}
       </span>
       <p className="font-mono text-[11px] font-medium tracking-[0.1em] text-text-muted uppercase">{label}</p>
+    </div>
+  );
+}
+
+/** Mock bank-transfer instructions — same "demo checkout" honesty as the
+ * card panel above (no real payment gateway is wired up), just a different
+ * form of it: a real transfer flow would show account details and wait for
+ * a webhook/reconciliation to confirm the funds landed, so this mirrors
+ * that shape (details to transfer to, a "I've sent it" confirmation) rather
+ * than pretending a card-only flow. Previously this tab left the checkout
+ * button permanently disabled with no way to complete an order at all. */
+function BankTransferDetails({ total }: { total: number }) {
+  const [copied, setCopied] = useState(false);
+  const accountNumber = "0123456789";
+
+  async function copyAccountNumber() {
+    try {
+      await navigator.clipboard.writeText(accountNumber);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Clipboard access can fail (permissions, insecure context) — the
+      // number is still shown on screen, so there's nothing to recover.
+    }
+  }
+
+  return (
+    <div className="mt-5 space-y-4">
+      <div className="rounded-xl border border-line bg-cream/60 p-4 text-sm">
+        <div className="flex items-center justify-between">
+          <span className="text-text-muted">Bank</span>
+          <span className="font-medium text-ink">Vitalink Trust Bank</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-text-muted">Account Name</span>
+          <span className="font-medium text-ink">Vitalink Holdings Ltd</span>
+        </div>
+        <div className="mt-2 flex items-center justify-between">
+          <span className="text-text-muted">Account Number</span>
+          <span className="flex items-center gap-2 font-mono font-medium text-ink">
+            {accountNumber}
+            <button
+              type="button"
+              onClick={copyAccountNumber}
+              aria-label="Copy account number"
+              className="text-text-muted hover:text-ink"
+            >
+              {copied ? <Check className="size-3.5 text-verified" aria-hidden /> : <Copy className="size-3.5" aria-hidden />}
+            </button>
+          </span>
+        </div>
+        <div className="mt-2 flex items-center justify-between border-t border-line pt-2">
+          <span className="text-text-muted">Amount</span>
+          <span className="font-semibold text-ink">N{total.toLocaleString("en-NG")}</span>
+        </div>
+      </div>
+      <p className="flex items-center gap-1.5 text-xs text-text-muted">
+        <Lock className="size-3.5" aria-hidden />
+        This is a demo checkout — no real transfer is expected or reconciled. Click below once you&apos;d normally
+        have sent it to place the order.
+      </p>
     </div>
   );
 }

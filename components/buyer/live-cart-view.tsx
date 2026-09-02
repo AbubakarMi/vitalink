@@ -7,6 +7,7 @@ import { Minus, Plus, Trash2, ArrowLeft, ImageOff, X, ShieldCheck, Truck, Loader
 import type { Cart, CartItem, CheckoutQuote, CheckoutQuoteLine } from "@/lib/api/cart";
 import { changeLiveCartQuantityAction, removeLiveCartItemAction, clearLiveCartAction } from "@/lib/cart/live-actions";
 import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
+import { CheckoutCta } from "@/components/buyer/checkout-cta";
 
 const ROW_GRID = "sm:grid-cols-[minmax(0,1fr)_110px_120px_110px_36px]";
 
@@ -20,8 +21,12 @@ const ROW_GRID = "sm:grid-cols-[minmax(0,1fr)_110px_120px_110px_36px]";
  * mount rather than a page awaiting getCart() directly (that call can mint
  * a fresh guest-cart cookie, which Next.js only allows from a Route
  * Handler/Server Action, never a component's render).
+ *
+ * isAuthenticated (from app/buyer/cart/page.tsx's verifySession(), guest-
+ * accessible) decides what the "Proceed to Checkout" CTA does — see
+ * components/buyer/checkout-cta.tsx.
  */
-export function LiveCartView() {
+export function LiveCartView({ isAuthenticated }: { isAuthenticated: boolean }) {
   const [cart, setCart] = useState<Cart | null>(null);
   const [quote, setQuote] = useState<CheckoutQuote | null>(null);
   const [loading, setLoading] = useState(true);
@@ -203,12 +208,7 @@ export function LiveCartView() {
             ) : (
               <p className="mt-4 text-sm text-text-muted">Pricing will show once your cart finishes loading.</p>
             )}
-            <Link
-              href="/buyer/checkout"
-              className="mt-5 flex w-full items-center justify-center rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85"
-            >
-              Proceed to Checkout
-            </Link>
+            <CheckoutCta isAuthenticated={isAuthenticated} />
 
             <div className="mt-5 space-y-2 border-t border-line pt-4 text-xs text-text-muted">
               <p className="flex items-center gap-1.5">

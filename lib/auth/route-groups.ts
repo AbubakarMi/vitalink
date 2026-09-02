@@ -32,6 +32,23 @@ export function isBuyerPathOpenToVendors(pathname: string): boolean {
   return BUYER_PATHS_OPEN_TO_VENDORS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
 }
 
+/**
+ * The cart itself needs no account — same as any real storefront, browsing
+ * and holding items doesn't require signing in, only paying for them does.
+ * The backend already mirrors this split (Cart endpoints are
+ * `AllowAnonymous()`, `GetCheckoutQuote`/`PlaceOrder` are
+ * `RequireAuthorization()`), via a guest cart cookie the backend itself
+ * mints. Checkout is deliberately NOT in this list — proxy.ts and
+ * requireAccountType still gate it, so a guest reaching /buyer/checkout
+ * (typed directly, or via the cart page's own login/register prompt) gets
+ * sent to log in first.
+ */
+const GUEST_ALLOWED_BUYER_PATHS = ["/buyer/cart"];
+
+export function isGuestAllowedBuyerPath(pathname: string): boolean {
+  return GUEST_ALLOWED_BUYER_PATHS.some((path) => pathname === path || pathname.startsWith(`${path}/`));
+}
+
 const DASHBOARD_PATH: Record<ProtectedPathPrefix, string> = {
   buyer: "/buyer/dashboard",
   vendor: "/vendor/dashboard",

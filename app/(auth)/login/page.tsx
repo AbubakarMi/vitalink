@@ -1,10 +1,14 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { AuthCard } from "@/components/auth/auth-card";
 import { LoginForm } from "./login-form";
 
 /** Real login — wired to lib/api/auth.ts's login() via ./actions.ts, not a
  * decorative form. MFA (Totp/OtpEmail) is detected but not yet handled with
- * its own UI — see actions.ts's honest message for that case. */
+ * its own UI — see actions.ts's honest message for that case. Suspense
+ * boundary is required by LoginForm's useSearchParams() (reads ?redirect=),
+ * not for any real loading delay — the fallback is just the form's own
+ * shape so there's no visible flash. */
 export default function LoginPage() {
   return (
     <AuthCard
@@ -20,7 +24,9 @@ export default function LoginPage() {
         </>
       }
     >
-      <LoginForm />
+      <Suspense fallback={<div className="h-[268px]" />}>
+        <LoginForm />
+      </Suspense>
     </AuthCard>
   );
 }

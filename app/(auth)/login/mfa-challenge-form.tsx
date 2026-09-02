@@ -21,27 +21,46 @@ const switchLinkClass = "w-full text-center text-xs font-medium text-verified ho
  * The second step of login when login() reports mfaRequired — dispatches
  * to a TOTP code form or an email-OTP send-then-verify form depending on
  * availableMethods (login.tsx's LoginResponse), with a link to switch
- * between them when both are available for this account.
+ * between them when both are available for this account. redirectTo (from
+ * login-form.tsx's ?redirect=) is threaded through so completing MFA still
+ * lands back where the visitor was headed, not just the account dashboard.
  */
-export function MfaChallengeForm({ flowId, availableMethods }: { flowId: string; availableMethods: string[] }) {
+export function MfaChallengeForm({
+  flowId,
+  availableMethods,
+  redirectTo,
+}: {
+  flowId: string;
+  availableMethods: string[];
+  redirectTo?: string | null;
+}) {
   const hasTotp = availableMethods.includes("Totp");
   const hasOtpEmail = availableMethods.includes("OtpEmail");
   const [method, setMethod] = useState<"Totp" | "OtpEmail">(hasTotp ? "Totp" : "OtpEmail");
 
   return method === "Totp" ? (
-    <TotpChallenge flowId={flowId} onSwitchToOtpEmail={hasOtpEmail ? () => setMethod("OtpEmail") : undefined} />
+    <TotpChallenge flowId={flowId} redirectTo={redirectTo} onSwitchToOtpEmail={hasOtpEmail ? () => setMethod("OtpEmail") : undefined} />
   ) : (
-    <OtpEmailChallenge flowId={flowId} onSwitchToTotp={hasTotp ? () => setMethod("Totp") : undefined} />
+    <OtpEmailChallenge flowId={flowId} redirectTo={redirectTo} onSwitchToTotp={hasTotp ? () => setMethod("Totp") : undefined} />
   );
 }
 
-function TotpChallenge({ flowId, onSwitchToOtpEmail }: { flowId: string; onSwitchToOtpEmail?: () => void }) {
+function TotpChallenge({
+  flowId,
+  redirectTo,
+  onSwitchToOtpEmail,
+}: {
+  flowId: string;
+  redirectTo?: string | null;
+  onSwitchToOtpEmail?: () => void;
+}) {
   const [state, formAction, pending] = useActionState(loginTotpAction, initialState);
   const [complete, setComplete] = useState(false);
 
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="flowId" value={flowId} />
+      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
       <div>
         <p className="text-sm font-medium text-ink-soft">Authenticator code</p>
         <p className="mt-1 text-xs text-text-muted">Enter the 6-digit code from your authenticator app.</p>
@@ -69,7 +88,15 @@ function TotpChallenge({ flowId, onSwitchToOtpEmail }: { flowId: string; onSwitc
   );
 }
 
-function OtpEmailChallenge({ flowId, onSwitchToTotp }: { flowId: string; onSwitchToTotp?: () => void }) {
+function OtpEmailChallenge({
+  flowId,
+  redirectTo,
+  onSwitchToTotp,
+}: {
+  flowId: string;
+  redirectTo?: string | null;
+  onSwitchToTotp?: () => void;
+}) {
   const [started, setStarted] = useState(false);
   const [maskedEmail, setMaskedEmail] = useState<string | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
@@ -123,6 +150,7 @@ function OtpEmailChallenge({ flowId, onSwitchToTotp }: { flowId: string; onSwitc
   return (
     <form action={formAction} className="space-y-4">
       <input type="hidden" name="flowId" value={flowId} />
+      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
       <div>
         <p className="text-sm font-medium text-ink-soft">Email code</p>
         <p className="mt-1 text-xs text-text-muted">Sent to {maskedEmail ?? "your email"}.</p>

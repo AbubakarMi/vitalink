@@ -15,19 +15,42 @@ export interface LoginState {
   mfa?: { flowId: string; availableMethods: string[] };
 }
 
-async function redirectToDashboard(): Promise<never> {
+/** Only ever a same-origin path typed by this app itself (checkout-cta.tsx,
+ * requireSession's own ?redirect=) — never trust it blindly, since it's
+ * still attacker-controlled query-string input. A bare "/..." single-slash
+ * path can't be an open redirect to another host; "//evil.com" or
+ * "https://evil.com" can, so anything not starting with exactly one "/" is
+ * rejected. */
+function safeRedirectTarget(value: FormDataEntryValue | null): string | null {
+  const target = typeof value === "string" ? value.trim() : "";
+  if (!target.startsWith("/") || target.startsWith("//")) {
+    return null;
+  }
+  return target;
+}
+
+async function redirectToDashboard(redirectTo?: string | null): Promise<never> {
   // Merge any guest cart into the now-authenticated session before routing
   // away — only meaningful once the real backend cart is in play.
   if (MARKETPLACE_LIVE) {
     await claimGuestCartOnLoginAction();
   }
   const session = await verifySession();
-  return redirect(session ? dashboardPathForAccountType(session.accountType) : "/");
+  if (!session) {
+    return redirect("/");
+  }
+  // redirectTo (from ?redirect= — most commonly /buyer/checkout, via
+  // components/buyer/checkout-cta.tsx's login prompt) wins over the
+  // account's own dashboard when present, so a guest who built a cart and
+  // logged in to pay actually lands back on checkout instead of being sent
+  // somewhere else and losing their place.
+  return redirect(redirectTo ?? dashboardPathForAccountType(session.accountType));
 }
 
 export async function loginAction(_prevState: LoginState, formData: FormData): Promise<LoginState> {
   const loginName = String(formData.get("loginName") ?? "").trim();
   const password = String(formData.get("password") ?? "");
+  const redirectTo = safeRedirectTarget(formData.get("redirect"));
 
   if (!loginName || !password) {
     return { error: "Enter your email and password." };
@@ -50,7 +73,7 @@ export async function loginAction(_prevState: LoginState, formData: FormData): P
   // login() already relayed the backend's Set-Cookie onto this response
   // (lib/api/auth.ts). verifySession() reads the now-set cookie to route to
   // the right dashboard — the login response itself carries no accountType.
-  return redirectToDashboard();
+  return redirectToDashboard(redirectTo);
 }
 
 export interface MfaChallengeState {
@@ -60,6 +83,7 @@ export interface MfaChallengeState {
 export async function loginTotpAction(_prevState: MfaChallengeState, formData: FormData): Promise<MfaChallengeState> {
   const flowId = String(formData.get("flowId") ?? "");
   const code = String(formData.get("code") ?? "").trim();
+  const redirectTo = safeRedirectTarget(formData.get("redirect"));
   if (!code) {
     return { error: "Enter the 6-digit code from your authenticator app." };
   }
@@ -71,7 +95,7 @@ export async function loginTotpAction(_prevState: MfaChallengeState, formData: F
     }
     return { error: "Something went wrong verifying that code. Please try again." };
   }
-  return redirectToDashboard();
+  return redirectToDashboard(redirectTo);
 }
 
 export async function loginOtpEmailStartAction(flowId: string): Promise<{ maskedEmail?: string; error?: string }> {
@@ -95,6 +119,7 @@ export async function loginOtpEmailResendAction(flowId: string): Promise<{ error
 export async function loginOtpEmailVerifyAction(_prevState: MfaChallengeState, formData: FormData): Promise<MfaChallengeState> {
   const flowId = String(formData.get("flowId") ?? "");
   const code = String(formData.get("code") ?? "").trim();
+  const redirectTo = safeRedirectTarget(formData.get("redirect"));
   if (!code) {
     return { error: "Enter the code sent to your email." };
   }
@@ -106,5 +131,5 @@ export async function loginOtpEmailVerifyAction(_prevState: MfaChallengeState, f
     }
     return { error: "Something went wrong verifying that code. Please try again." };
   }
-  return redirectToDashboard();
+  return redirectToDashboard(redirectTo);
 }

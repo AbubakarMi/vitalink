@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { loginAction, type LoginState } from "./actions";
 import { MfaChallengeForm } from "./mfa-challenge-form";
@@ -11,16 +12,24 @@ const initialState: LoginState = {};
 const fieldClass =
   "w-full rounded-xl border border-line bg-white py-3 pr-11 pl-11 text-sm text-ink shadow-sm outline-none transition-shadow focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
 
+/** ?redirect=, when present, is where the visitor was trying to go before
+ * requireAccountType/proxy.ts sent them here — most commonly
+ * /buyer/checkout from the cart page's own login prompt
+ * (components/buyer/checkout-cta.tsx). Carried through as a hidden field
+ * rather than read server-side, since this is the one page a Server
+ * Component can't read the current URL's query string from directly. */
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
+  const redirectTo = useSearchParams().get("redirect");
 
   if (state.mfa) {
-    return <MfaChallengeForm flowId={state.mfa.flowId} availableMethods={state.mfa.availableMethods} />;
+    return <MfaChallengeForm flowId={state.mfa.flowId} availableMethods={state.mfa.availableMethods} redirectTo={redirectTo} />;
   }
 
   return (
     <form action={formAction} className="space-y-4">
+      {redirectTo && <input type="hidden" name="redirect" value={redirectTo} />}
       <div>
         <label htmlFor="loginName" className="text-sm font-medium text-ink-soft">
           Email
