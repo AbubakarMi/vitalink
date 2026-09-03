@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { login, loginTotp, loginStartOtpEmail, loginVerifyOtpEmail, resendLoginOtpEmail } from "@/lib/api/auth";
+import { login, loginTotp, loginStartOtpEmail, loginVerifyOtpEmail, resendLoginOtpEmail, ensureCustomerProfile } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { verifySession } from "@/lib/auth/dal";
 import { dashboardPathForAccountType } from "@/lib/auth/route-groups";
@@ -30,12 +30,22 @@ function safeRedirectTarget(value: FormDataEntryValue | null): string | null {
 }
 
 async function redirectToDashboard(redirectTo?: string | null): Promise<never> {
+  const session = await verifySession();
+  // A live Customer's backend-side CustomerProfile isn't created at
+  // registration (that only provisions the Zitadel identity) — every
+  // customer-scoped call 404s with "CustomerProfile.NotFound" until this
+  // runs once. Called on every login, not just signup, since there's no
+  // more reliable hook; ensureCustomerProfile() itself is a mock-mode
+  // no-op and idempotent against an already-provisioned profile. See
+  // lib/api/auth.ts's own comment.
+  if (session?.accountType === "Customer") {
+    await ensureCustomerProfile();
+  }
   // Merge any guest cart into the now-authenticated session before routing
   // away — only meaningful once the real backend cart is in play.
   if (MARKETPLACE_LIVE) {
     await claimGuestCartOnLoginAction();
   }
-  const session = await verifySession();
   if (!session) {
     return redirect("/");
   }

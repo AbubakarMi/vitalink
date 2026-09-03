@@ -244,6 +244,86 @@ splitting the plain label constants into a boundary-safe
 `lib/api/address-labels.ts` (no `server-only`) that both the client
 component and the server adapter import from.
 
+### 0d-cont. Live-tested against a real backend (2026-09-03)
+
+Pulled the backend (`631336a..10ad827` — settlement/payout/chargeback
+features, unrelated to this) and got it running fresh: the local Postgres
+had only `__EFMigrationsHistory`, no actual schema, so this was a genuine
+from-scratch `Database.Migrate()` run, not a restart of already-seeded
+data. Two local-environment snags, no code fix needed:
+
+- `git stash`/`pop` while pulling merged my own local
+  `appsettings.Development.json` edits with the backend's, producing a
+  duplicate `EncryptionOptions` JSON key — the app wouldn't even start
+  ("A duplicate key ... was found"). Removed my older duplicate, kept the
+  one the backend team added.
+- Live registration's email-verification link can never arrive locally:
+  Zitadel has no SMTP configured here (`could not create email channel ...
+  SMTPConfig.NotFound` in its logs), and neither `SetEmail` nor
+  `ResendEmailCode`'s `returnCode` verification modes worked as an
+  admin-side bypass (`Email not changed` / `Code is empty` respectively,
+  via the backend's own Zitadel service-account credentials). Turned out
+  not to matter: **login doesn't actually check email-verified status at
+  all** — an unverified test account logs in fine, so this was a dead end
+  worth documenting but not worth solving further.
+
+**Two real findings from actually exercising the address book against a
+live backend + live login:**
+
+1. **A live-registered customer has no backend `CustomerProfile` until
+   something creates one.** `POST auth/register` only provisions the
+   Zitadel identity — `Application/Features/Customer/Commands/
+   CreateCustomerProfile` is a separate, `RequirePermission`-gated
+   endpoint (`POST users/customers/profile`), so it can only be called
+   with a real session, i.e. after login, not at registration time.
+   Confirmed live: `GetCustomerAddresses` (and presumably every other
+   customer-scoped call) 404s with `CustomerProfile.NotFound` until this
+   runs once. **Fixed on the frontend**: `lib/api/auth.ts`'s new
+   `ensureCustomerProfile()` (mock-mode no-op, live calls the endpoint and
+   swallows the 409 `CustomerProfileAlreadyExists` conflict) is now called
+   from `login/actions.ts`'s `redirectToDashboard()` for every live
+   Customer login, not just once at signup — there's no more reliable
+   hook, and it's idempotent. Always creates an `Individual` profile; this
+   app's registration form has no UI for `Institutional` (org name/type),
+   so that customer type isn't reachable through it yet.
+
+2. **Confirmed backend bug: saving a customer's first (or any default)
+   address crashes with a foreign-key violation, not a normal response.**
+   Live-tested `AddCustomerAddress` end to end (past the CustomerProfile
+   fix above) and it 500s every time on a brand-new profile. Root cause,
+   read directly from the EF Core error and the generated SQL: adding an
+   address that becomes the default shipping/billing one (every profile's
+   *first* address always does — `CustomerProfile.AddAddress`'s own
+   documented behavior) does two writes in one `SaveChangesAsync()` — INSERT
+   the new `CustomerAddress` row, and UPDATE `CustomerProfile.
+   Default{Shipping,Billing}AddressId` to point at it. EF Core's automatic
+   write-ordering doesn't know the second write depends on the first
+   (`DefaultShippingAddressId`/`DefaultBillingAddressId` are plain scalar
+   Guid columns, not modeled as EF navigation properties pointing at
+   `CustomerAddress`, so its dependency graph can't see the relationship),
+   so Postgres runs the `customer_profiles` UPDATE before the
+   `customer_addresses` INSERT and fails: `insert or update on table
+   "customer_profiles" violates foreign key constraint
+   "fk_customer_profiles_customer_addresses_default_billing_addres" ...
+   Key (default_billing_address_id)=(...) is not present in table
+   "customer_addresses"`. This is entirely backend-side (`Application/
+   Features/Customer/Commands/AddCustomerAddress/
+   AddCustomerAddressHandler.cs`) — nothing to fix on the frontend; see
+   `docs/BACKEND_TODO.md` for the plain version. Only reproduced on
+   `AddCustomerAddress` directly (the reachable path — a brand-new
+   customer's first address always trips it), but the same write-ordering
+   gap plausibly affects `UpdateCustomerAddress` and
+   `SetDefaultShippingAddress`/`SetDefaultBillingAddress` too, whenever
+   they change which address is default — not confirmed live, flagged as
+   a hypothesis in the TODO doc.
+
+**Net effect**: `lib/api/addresses.ts`'s *read* path
+(`GetCustomerAddresses`) is now genuinely confirmed live-correct, byte for
+byte, against a real backend + real login. The *write* path is blocked by
+the bug above for any new customer's first address, so `CUSTOMER_ADDRESS_DATA_SOURCE=live`
+should stay off in any real deploy until that's fixed backend-side —
+left as `mock` in `.env.local`, matching every other flag's default.
+
 ---
 
 ## 1. Running the backend locally

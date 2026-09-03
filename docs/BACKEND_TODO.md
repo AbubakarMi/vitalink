@@ -1,9 +1,9 @@
 <!-- Title -->
 # What frontend needs from backend
 
-Simple version. Tested live 2026-09-02.
+Simple version. Tested live 2026-09-02, address book added 2026-09-03.
 
-## Heads up — one thing we already worked around
+## Heads up — two things we already worked around
 
 On every list endpoint (vendors, staff, products, categories, etc.), the
 `PageNumber`, `PageSize`, and `OrderBy` query params all have default values
@@ -11,6 +11,13 @@ in the C# code, but the server still rejects the request with a 400 if you
 don't send them. So the defaults don't actually work — we just always send
 all three now. Not blocking us, just flagging it in case it's not what you
 intended.
+
+Registering a new customer only creates their login (Zitadel) — it doesn't
+create their customer profile in your own database. So right after
+registering, calling any customer endpoint (their address book, for
+example) fails with "customer profile not found." We now call `POST
+users/customers/profile` ourselves right after login to fix this. Just
+flagging it in case that's not how it's meant to work.
 
 ## Bugs to fix
 
@@ -32,6 +39,24 @@ intended.
    Fix: catch the error properly and return a normal error message instead
    of crashing.
 
+5. **Saving a customer's first address always crashes (server error).**
+   A customer's very first saved address automatically becomes their
+   default shipping and billing address — but saving it crashes every
+   time with a database error instead of actually saving. It also crashes
+   any time an address is saved as a default (not just the first one).
+   Only saving a non-default address (after the customer already has at
+   least one) works.
+   What's happening: saving a new default address does two things in one
+   go — creates the new address row, and points the customer's "default
+   address" at it. The database does these in the wrong order (tries to
+   point at the new address before it's actually been created), so it
+   fails a foreign-key check.
+   File: `AddCustomerAddressHandler` (also likely affects `UpdateCustomerAddress`
+   and `SetDefaultShippingAddress`/`SetDefaultBillingAddress` the same way,
+   though we only reproduced it on Add so far).
+   This blocks the whole address book for a new customer today — reading
+   addresses works fine, saving the first one doesn't.
+
 ## Things frontend needs that don't exist yet
 
 3. **Check if an email is already used, before signup.**
@@ -48,8 +73,9 @@ intended.
 
 Register, login, get current user, refresh session, logout, logout from all
 devices, forgot password, resend verification email, starting authenticator
-setup (QR code + secret), and the admin pages for Vendors, Staff/Users,
-Product Categories, and the Audit log all confirmed working now.
+setup (QR code + secret), the admin pages for Vendors, Staff/Users, Product
+Categories, and the Audit log, and reading a customer's address book (adding
+one is the bug above) all confirmed working now.
 
 ## Older, already-known items (not new)
 

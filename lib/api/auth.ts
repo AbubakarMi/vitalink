@@ -157,6 +157,36 @@ export async function register(input: RegisterInput): Promise<RegisterResponse> 
   return RegisterResponseSchema.parse(data);
 }
 
+/**
+ * Real registration (`POST auth/register`) only provisions the Zitadel
+ * identity — it does NOT create the backend's own `CustomerProfile` row
+ * (`Application/Features/Customer/Commands/CreateCustomerProfile`, a
+ * separate endpoint, `RequirePermission`-gated so it can only be called
+ * with a real session, i.e. after login, not at registration time).
+ * Confirmed live: every customer-scoped call (the address book, and
+ * likely order placement later) 404s with "CustomerProfile.NotFound"
+ * until this runs. Called from login's redirectToDashboard() for every
+ * live Customer session, not just once at signup, since there was no
+ * other reliable hook — idempotent by design (see the 409 swallow below),
+ * so calling it on every login is harmless once a profile already exists.
+ * No UI anywhere collects "Individual vs Institutional" (this app only
+ * has one buyer registration form), so this always creates an Individual
+ * profile — Institutional customers aren't reachable through this app yet.
+ */
+export async function ensureCustomerProfile(): Promise<void> {
+  if (SOURCE === "mock") {
+    return; // Mock mode has no matching concept — nothing to provision.
+  }
+  try {
+    await apiClient.post("/users/customers/profile", { body: { customerType: "Individual" } });
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 409) {
+      return; // CustomerProfile.CustomerProfileAlreadyExists — already provisioned, not an error.
+    }
+    throw err;
+  }
+}
+
 export interface LoginInput {
   loginName: string; // email or Zitadel loginName
   password: string;
