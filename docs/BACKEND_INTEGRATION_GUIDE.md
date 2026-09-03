@@ -195,6 +195,55 @@ the backend's own `Application.Features.Marketplace` and
 `Application.Features.Carts` source (record-by-record, same standard as the
 other fixes in this section), just not exercised through a browser yet.
 
+### 0d. Status (2026-09-03) — `CUSTOMER_ADDRESS_DATA_SOURCE=live`: real customer address book
+
+Also confirmed live via the same real backend + mock-mode toggle so no live
+server was even required to test the buyer-facing parts of this: this app's
+old "delivery address" concept was a single free-text address per buyer
+(`lib/api/buyer-profile.ts`, now deleted) with no relationship to anything
+real — the actual backend (`Web.Api/Endpoints/Customer/*`,
+`Application/Features/Customer/{Queries,Commands}/*CustomerAddress*`) has a
+full address book: several labeled addresses per customer (Home/Office/
+Department/Other) each independently markable as the default shipping
+and/or billing address. Built a real, parallel `lib/api/addresses.ts`
+adapter (mock + live, same `SOURCE` toggle pattern as
+`VENDOR_PROFILE_DATA_SOURCE`) matching that shape exactly, and a new
+Settings UI (`components/buyer/address-book.tsx`) to manage it —
+add/edit/remove, set-default-shipping, set-default-billing. Checkout's
+delivery-address step (`components/buyer/checkout-view.tsx`) now picks from
+this saved address book instead of a fresh free-text form every time — this
+is also the actual prerequisite for real order placement, since
+`Carts/Commands/PlaceOrder` needs a `ShippingAddressId`/`BillingAddressId`
+(a saved address's real id), not free text.
+
+**This is the address book only — real order placement (`PlaceOrder`) is
+still NOT wired up**, and deliberately so: `PlaceOrderResponse` carries a
+`CheckoutUrl`, meaning the real flow is create-a-pending-order-then-redirect-
+to-a-Monnify-hosted-payment-page-then-confirm-via-webhook, not "submit a
+form and you're done" — a genuinely separate, payment-critical subsystem
+(idempotency keys, webhook handling, payment-status polling) that stays out
+of scope for this pass, same as before. `completeCheckoutAction` (checkout's
+actual "place order" button) is still the pre-existing mock order flow
+(`lib/api/buyer-orders.ts`) — it now reads the address from a saved
+`CustomerAddress` instead of a free-text form, but doesn't call the real
+`PlaceOrder` endpoint.
+
+**Found and fixed one real frontend bug while building this** (not a
+backend issue): the new `components/buyer/address-book.tsx` (a Client
+Component) imported `ADDRESS_LABELS` — a real runtime value, not just a
+type — directly from `lib/api/addresses.ts`, which starts with
+`import "server-only"`. That import guard throws the moment any module
+importing it gets bundled into a client chunk; Turbopack's dev server
+didn't surface that as a normal build error, it just silently failed to
+write that route's manifest and served a generic
+`ENOENT: ... build-manifest.json` 500 with no useful stack frame — a rough
+edge worth knowing about if this pattern bites again. Root-caused by a
+control test (`git stash` back to the last commit, confirm the old code
+path didn't 500, confirm my new code did) rather than guessing. Fixed by
+splitting the plain label constants into a boundary-safe
+`lib/api/address-labels.ts` (no `server-only`) that both the client
+component and the server adapter import from.
+
 ---
 
 ## 1. Running the backend locally

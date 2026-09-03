@@ -3,7 +3,15 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import QRCode from "qrcode";
-import { saveDeliveryAddress } from "@/lib/api/buyer-profile";
+import {
+  addAddress,
+  updateAddress,
+  removeAddress,
+  setDefaultAddress,
+  type AddressInput,
+  type CustomerAddress,
+} from "@/lib/api/addresses";
+import { ADDRESS_LABELS, type AddressLabel } from "@/lib/api/address-labels";
 import { startTotpEnrollment, confirmTotpEnrollment, removeTotp, logoutAllDevices } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 import { setTotpHint } from "@/lib/auth/totp-hint";
@@ -63,17 +71,64 @@ export async function logoutAllDevicesAction(): Promise<ActionResult> {
   redirect("/login");
 }
 
-export async function saveDeliveryAddressAction(_prev: ActionResult, formData: FormData): Promise<ActionResult> {
+function addressInputFromFormData(formData: FormData): AddressInput {
+  const label = String(formData.get("label") ?? "Home") as AddressLabel;
+  return {
+    label: ADDRESS_LABELS.includes(label) ? label : "Home",
+    customLabel: formData.get("customLabel") ? String(formData.get("customLabel")) : null,
+    recipientName: String(formData.get("recipientName") ?? ""),
+    recipientPhoneNumber: formData.get("recipientPhoneNumber") ? String(formData.get("recipientPhoneNumber")) : null,
+    organizationUnit: formData.get("organizationUnit") ? String(formData.get("organizationUnit")) : null,
+    addressLine1: String(formData.get("addressLine1") ?? ""),
+    addressLine2: formData.get("addressLine2") ? String(formData.get("addressLine2")) : null,
+    city: String(formData.get("city") ?? ""),
+    state: String(formData.get("state") ?? ""),
+    postalCode: formData.get("postalCode") ? String(formData.get("postalCode")) : null,
+    country: String(formData.get("country") ?? ""),
+    isDefaultShippingAddress: formData.get("isDefaultShippingAddress") === "on",
+    isDefaultBillingAddress: formData.get("isDefaultBillingAddress") === "on",
+  };
+}
+
+export interface AddressActionResult extends ActionResult {
+  data?: CustomerAddress;
+}
+
+export async function addAddressAction(_prev: AddressActionResult, formData: FormData): Promise<AddressActionResult> {
   try {
-    await saveDeliveryAddress({
-      country: String(formData.get("country") ?? ""),
-      state: String(formData.get("state") ?? ""),
-      city: String(formData.get("city") ?? ""),
-      addressLine: String(formData.get("addressLine") ?? ""),
-    });
+    const address = await addAddress(addressInputFromFormData(formData));
     revalidatePath("/buyer/settings");
-    return {};
+    return { data: address };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save your address." };
+    return { error: err instanceof ApiError ? err.message : "Couldn't save that address." };
   }
+}
+
+export async function updateAddressAction(_prev: AddressActionResult, formData: FormData): Promise<AddressActionResult> {
+  const addressId = String(formData.get("addressId") ?? "");
+  try {
+    const address = await updateAddress(addressId, addressInputFromFormData(formData));
+    revalidatePath("/buyer/settings");
+    return { data: address };
+  } catch (err) {
+    return { error: err instanceof ApiError ? err.message : "Couldn't save that address." };
+  }
+}
+
+export async function removeAddressAction(addressId: string): Promise<ActionResult> {
+  const result = await removeAddress(addressId);
+  revalidatePath("/buyer/settings");
+  return result;
+}
+
+export async function setDefaultShippingAddressAction(addressId: string): Promise<ActionResult> {
+  const result = await setDefaultAddress(addressId, "shipping");
+  revalidatePath("/buyer/settings");
+  return result;
+}
+
+export async function setDefaultBillingAddressAction(addressId: string): Promise<ActionResult> {
+  const result = await setDefaultAddress(addressId, "billing");
+  revalidatePath("/buyer/settings");
+  return result;
 }

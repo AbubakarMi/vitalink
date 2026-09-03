@@ -1,7 +1,7 @@
 import { requireAccountType } from "@/lib/auth/dal";
 import { getCurrentUser, getTotpEnabled } from "@/lib/api/auth";
-import { getDeliveryAddress } from "@/lib/api/buyer-profile";
-import { DeliveryAddressForm } from "@/components/buyer/delivery-address-form";
+import { listAddresses } from "@/lib/api/addresses";
+import { AddressBook } from "@/components/buyer/address-book";
 import { MfaSettings } from "@/components/buyer/mfa-settings";
 import { LogoutAllDevicesButton } from "@/components/buyer/logout-all-devices-button";
 
@@ -15,11 +15,12 @@ function splitName(displayName: string): { first: string; last: string } {
 /** Matches Desktop - 70.pdf's Basic Info + Delivery Address layout. Basic
  * info (name/email/phone) is read-only here — there's no update-profile
  * endpoint or mock function anywhere in lib/api/auth.ts to back editing it
- * yet, so only the delivery address (a genuinely new field this app adds)
- * is actually editable. */
+ * yet. Address book (lib/api/addresses.ts) replaced the old single free-text
+ * delivery address — a buyer can save several labeled addresses and mark
+ * defaults for shipping/billing, matching the real backend's model. */
 export default async function BuyerSettingsPage() {
   await requireAccountType("buyer", "/buyer/settings");
-  const [user, address, totpEnabled] = await Promise.all([getCurrentUser(), getDeliveryAddress(), getTotpEnabled()]);
+  const [user, addresses, totpEnabled] = await Promise.all([getCurrentUser(), listAddresses(), getTotpEnabled()]);
   const { first, last } = splitName(user?.displayName ?? "");
 
   return (
@@ -48,9 +49,9 @@ export default async function BuyerSettingsPage() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
-        <p className="font-mono text-[11px] font-medium tracking-[0.1em] text-text-muted uppercase">Delivery Address</p>
-        <p className="mt-1 mb-4 text-sm text-text-muted">Used to prefill checkout.</p>
-        <DeliveryAddressForm initialAddress={address} />
+        <p className="font-mono text-[11px] font-medium tracking-[0.1em] text-text-muted uppercase">Delivery Addresses</p>
+        <p className="mt-1 mb-4 text-sm text-text-muted">Your default shipping/billing address is used to prefill checkout.</p>
+        <AddressBook initialAddresses={addresses} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">

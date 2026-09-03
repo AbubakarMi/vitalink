@@ -3,51 +3,61 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Country } from "country-state-city";
-import { CreditCard, Landmark, Lock, ShieldCheck, Copy, Check } from "lucide-react";
+import { CreditCard, Landmark, Lock, ShieldCheck, Copy, Check, MapPin, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCart } from "@/lib/cart/store";
 import { DELIVERY_FEE } from "@/lib/cart/constants";
-import type { DeliveryAddress } from "@/lib/api/buyer-profile";
-import type { BuyerOrderItem } from "@/lib/api/buyer-orders";
-import { CountrySelectField, StateSelectField } from "@/components/ui/country-state-fields";
+import type { CustomerAddress } from "@/lib/api/addresses";
+import type { BuyerOrderItem, BuyerDeliveryAddress } from "@/lib/api/buyer-orders";
 import { completeCheckoutAction } from "@/app/buyer/checkout/actions";
-
-/** DeliveryAddress.country only ever stored a display name ("Nigeria"), so
- * resolving it back to an ISO code (to seed StateSelectField's country
- * lookup) is a name match, not a stored field — falls back to Nigeria,
- * this being a Nigeria-based marketplace. */
-function resolveCountryCode(countryName: string | undefined): string {
-  if (!countryName) return "NG";
-  return Country.getAllCountries().find((c) => c.name === countryName)?.isoCode ?? "NG";
-}
 
 const fieldClass =
   "mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
+
+/** Turns a saved CustomerAddress (lib/api/addresses.ts's real, multi-address
+ * model) into the flat BuyerDeliveryAddress shape completeCheckoutAction
+ * still expects — that action is the mock order-completion flow (lib/api/
+ * buyer-orders.ts), unrelated to and out of scope for this pass's real
+ * address book; see docs/BACKEND_INTEGRATION_GUIDE.md §0d for why real
+ * order placement (which would want the address's id directly, not this
+ * flattening) stays deferred. */
+function toDeliveryAddress(address: CustomerAddress): BuyerDeliveryAddress {
+  return {
+    country: address.country,
+    state: address.state,
+    city: address.city,
+    addressLine: address.addressLine2 ? `${address.addressLine1}, ${address.addressLine2}` : address.addressLine1,
+  };
+}
 
 /** No real payment gateway is wired up (mockup showed "Pay with Paystack",
  * but there's no Paystack integration or backend Payment endpoint) — this
  * form is disclosed as a mock rather than implying real card processing.
  * Client-only (reads the real cart store), split out from page.tsx which
- * keeps the requireAccountType guard as a Server Component. */
-export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddress | null }) {
+ * keeps the requireAccountType guard as a Server Component.
+ *
+ * Delivery Address picks from the buyer's saved address book
+ * (lib/api/addresses.ts) rather than free-text fields typed fresh every
+ * time — addresses are managed on Settings (components/buyer/address-book.tsx). */
+export function CheckoutView({ initialAddresses }: { initialAddresses: CustomerAddress[] }) {
   const router = useRouter();
   const { items, subtotal, clearCart } = useCart();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [method, setMethod] = useState<"card" | "bank">("card");
-  const [countryCode, setCountryCode] = useState(() => resolveCountryCode(initialAddress?.country));
+  const [selectedAddressId, setSelectedAddressId] = useState(
+    () => initialAddresses.find((a) => a.isDefaultShippingAddress)?.id ?? initialAddresses[0]?.id ?? null,
+  );
 
   const total = subtotal + DELIVERY_FEE;
 
-  function handleSubmit(formData: FormData) {
+  function handleSubmit() {
     setError(null);
-    const address: DeliveryAddress = {
-      country: String(formData.get("country") ?? ""),
-      state: String(formData.get("state") ?? ""),
-      city: String(formData.get("city") ?? ""),
-      addressLine: String(formData.get("addressLine") ?? ""),
-    };
+    const selected = initialAddresses.find((a) => a.id === selectedAddressId);
+    if (!selected) {
+      setError("Choose a delivery address before completing your order.");
+      return;
+    }
     const orderItems: BuyerOrderItem[] = items.map((item) => ({
       productId: item.productId,
       name: item.name,
@@ -57,7 +67,7 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
     }));
 
     startTransition(async () => {
-      const result = await completeCheckoutAction(orderItems, address);
+      const result = await completeCheckoutAction(orderItems, toDeliveryAddress(selected));
       if (result.error || !result.data) {
         setError(result.error ?? "Something went wrong.");
         return;
@@ -87,29 +97,57 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
         <div className="space-y-6">
           <div className="rounded-2xl border border-line bg-white p-5 sm:p-6">
             <SectionHeading step={1} label="Delivery Address" />
-            <div className="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <CountrySelectField
-                name="country"
-                defaultCountryCode={countryCode}
-                required
-                onCountryChange={(isoCode) => setCountryCode(isoCode)}
-              />
-              <StateSelectField
-                name="state"
-                countryCode={countryCode}
-                defaultValue={countryCode === resolveCountryCode(initialAddress?.country) ? initialAddress?.state : undefined}
-                required
-              />
-              <Field label="City" name="city" placeholder="e.g. Enugu" defaultValue={initialAddress?.city} required />
-              <Field
-                label="Street Address"
-                name="addressLine"
-                placeholder="e.g. No 12 Nza Street, Independence Layout"
-                defaultValue={initialAddress?.addressLine}
-                required
-                className="sm:col-span-2"
-              />
-            </div>
+            {initialAddresses.length === 0 ? (
+              <div className="mt-4 rounded-xl border border-dashed border-line p-4 text-sm text-text-muted">
+                You don&apos;t have a saved address yet.{" "}
+                <Link href="/buyer/settings" className="font-medium text-verified hover:text-ink">
+                  Add one in Settings
+                </Link>{" "}
+                before checking out.
+              </div>
+            ) : (
+              <div className="mt-4 space-y-2">
+                {initialAddresses.map((address) => (
+                  <label
+                    key={address.id}
+                    className={cn(
+                      "flex cursor-pointer items-start gap-3 rounded-xl border p-4 transition-colors",
+                      selectedAddressId === address.id ? "border-ink bg-mint/40" : "border-line hover:border-ink/30",
+                    )}
+                  >
+                    <input
+                      type="radio"
+                      name="shippingAddressId"
+                      value={address.id}
+                      checked={selectedAddressId === address.id}
+                      onChange={() => setSelectedAddressId(address.id)}
+                      className="mt-1 size-4"
+                    />
+                    <div className="min-w-0 text-sm">
+                      <p className="flex items-center gap-1.5 font-medium text-ink">
+                        <MapPin className="size-3.5 shrink-0 text-text-muted" aria-hidden />
+                        {address.recipientName}
+                        <span className="rounded-full bg-cream px-2 py-0.5 text-xs font-normal text-text-muted">
+                          {address.label === "Other" && address.customLabel ? address.customLabel : address.label}
+                        </span>
+                      </p>
+                      <p className="mt-1 text-ink-soft">
+                        {address.addressLine1}
+                        {address.addressLine2 && `, ${address.addressLine2}`}, {address.city}, {address.state},{" "}
+                        {address.country}
+                      </p>
+                    </div>
+                  </label>
+                ))}
+                <Link
+                  href="/buyer/settings"
+                  className="flex items-center gap-1.5 pt-1 text-sm font-medium text-verified hover:text-ink"
+                >
+                  <Plus className="size-4" aria-hidden />
+                  Add another address
+                </Link>
+              </div>
+            )}
           </div>
 
           <div className="rounded-2xl border border-line bg-white p-5 sm:p-6">
@@ -175,7 +213,7 @@ export function CheckoutView({ initialAddress }: { initialAddress: DeliveryAddre
 
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || !selectedAddressId}
             className="mt-5 flex w-full items-center justify-center gap-2 rounded-xl bg-ink px-6 py-3 text-sm font-medium text-white shadow-sm transition-colors hover:bg-ink/85 disabled:opacity-50"
           >
             <Lock className="size-4" aria-hidden />
