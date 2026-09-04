@@ -14,8 +14,8 @@ const fieldClass =
 
 /** ?redirect=, when present, is where the visitor was trying to go before
  * requireAccountType/proxy.ts sent them here — most commonly
- * /buyer/checkout from the cart page's own login prompt
- * (components/buyer/checkout-cta.tsx). Carried through as a hidden field
+ * /customer/checkout from the cart page's own login prompt
+ * (components/customer/checkout-cta.tsx). Carried through as a hidden field
  * rather than read server-side, since this is the one page a Server
  * Component can't read the current URL's query string from directly. */
 export function LoginForm() {

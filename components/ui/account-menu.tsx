@@ -9,7 +9,7 @@ import { logoutAction } from "@/lib/auth/actions";
  * Header avatar → click to reveal a Sign Out menu (plus optional extra nav
  * links, e.g. "My Orders" for a vendor shopping the marketplace — see
  * components/marketplace/marketplace-header.tsx). Shared across roles
- * (components/vendor/dashboard-shell.tsx, components/buyer/dashboard-shell.tsx)
+ * (components/vendor/dashboard-shell.tsx, components/customer/dashboard-shell.tsx)
  * since the behavior and logoutAction are identical regardless of
  * AccountType — this is presentation, not role-scoped business logic, so it
  * lives in components/ui/ rather than being duplicated per role.

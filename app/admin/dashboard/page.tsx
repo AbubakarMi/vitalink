@@ -39,7 +39,7 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  * Sales Trend, Category Breakdown, Total Sales, and the "Fulfill Orders"
  * pending count are mock (lib/api/admin/{analytics,transactions,orders}.ts —
  * no backend Order/Analytics API exists yet, same mock-data approach used
- * for buyer/vendor). Product-status counts and the audit feed come from
+ * for customer/vendor). Product-status counts and the audit feed come from
  * real routes whose response shape isn't confirmed yet, so both degrade to
  * an empty state instead of crashing if the shape doesn't match once wired
  * to a live backend.

@@ -11,7 +11,7 @@ export default async function AdminDisputesPage() {
     <ComingSoon
       icon={Scale}
       title="Disputes"
-      description="There's no backend concept of disputes yet — this will list buyer/vendor disputes once that exists."
+      description="There's no backend concept of disputes yet — this will list customer/vendor disputes once that exists."
     />
   );
 }

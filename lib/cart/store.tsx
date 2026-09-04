@@ -6,7 +6,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
  * Client-only cart store (localStorage-backed). No Cart API exists on the
  * backend yet (design doc §1) — this is real, working add/remove/quantity
  * state, just not persisted server-side or shared across devices until that
- * ships. The buyer cart page and marketplace/header cart count both read
+ * ships. The customer cart page and marketplace/header cart count both read
  * from this same store instead of separate mocked fixtures.
  */
 

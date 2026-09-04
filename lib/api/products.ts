@@ -5,9 +5,9 @@ import { type SortOption } from "./product-sort";
 
 export { SORT_OPTIONS, type SortOption } from "./product-sort";
 
-/** Vendor-facing lifecycle status for a listing — absent on buyer-facing
+/** Vendor-facing lifecycle status for a listing — absent on customer-facing
  * products (a vendor's inventory *is* the marketplace catalog, scoped to
- * their own vendorId, with these extra management fields buyer views never
+ * their own vendorId, with these extra management fields customer views never
  * read or send). See docs/superpowers/specs/2026-08-12-vendor-dashboard-round1-design.md §2. */
 export const VENDOR_PRODUCT_STATUSES = ["Active", "PendingReview", "OutOfStock", "Archived", "Rejected"] as const;
 export type VendorProductStatus = (typeof VENDOR_PRODUCT_STATUSES)[number];
@@ -51,7 +51,7 @@ const ProductSchema = z.object({
   technicalSpecs: z.array(z.object({ label: z.string(), value: z.string() })).optional(),
   includedAccessories: z.array(z.string()).optional(),
   clinicalUseCases: z.array(z.string()).optional(),
-  // Vendor dashboard fields (round 1) — optional, buyer-facing code paths
+  // Vendor dashboard fields (round 1) — optional, customer-facing code paths
   // never set or read these.
   vendorId: z.string().optional(),
   status: z.enum(VENDOR_PRODUCT_STATUSES).optional(),

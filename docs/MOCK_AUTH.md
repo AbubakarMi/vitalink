@@ -39,11 +39,11 @@ The mock user store seeds these on first use (see `seedDemoUsersOnce()` in
 
 | Email | Role | Lands on |
 |---|---|---|
-| `buyer@vitalink.dev` | Customer | `/buyer/dashboard` |
+| `customer@vitalink.dev` | Customer | `/customer/dashboard` |
 | `vendor@vitalink.dev` | Vendor | `/vendor/dashboard` |
 | `staff@vitalink.dev` | Staff | `/admin/dashboard` |
 
-You can also register a brand-new account through `/register/buyer` or
+You can also register a brand-new account through `/register/customer` or
 `/register/vendor` — it's added to the same in-memory store and can log in
 immediately afterward.
 

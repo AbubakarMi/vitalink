@@ -117,7 +117,7 @@ function DraftProductView({
               disabled={!draftReady}
               tone="neutral"
               title={product.status === "Rejected" ? "Resubmit for review?" : "Submit for review?"}
-              description="An admin will need to approve this before it's visible to buyers on the marketplace."
+              description="An admin will need to approve this before it's visible to customers on the marketplace."
               confirmLabel={product.status === "Rejected" ? "Yes, resubmit" : "Yes, submit"}
               trigger={
                 <button
@@ -231,7 +231,7 @@ function PublishedProductView({
             onConfirm={onUnarchive}
             tone="neutral"
             title={`Un-archive "${product.name}"?`}
-            description="This puts the listing back on the marketplace, visible and purchasable by buyers again."
+            description="This puts the listing back on the marketplace, visible and purchasable by customers again."
             confirmLabel="Yes, un-archive it"
             trigger={
               <button
@@ -329,7 +329,7 @@ function PublishedProductView({
               <div key={review.id} className="rounded-2xl border border-line p-5">
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="font-medium text-ink">Verified Buyer</p>
+                    <p className="font-medium text-ink">Verified Customer</p>
                     <p className="text-xs text-text-muted">
                       {new Date(review.date).toLocaleDateString("en-NG", { day: "2-digit", month: "short", year: "numeric" })}
                     </p>
@@ -376,7 +376,7 @@ function RestockForm({ onRestock }: { onRestock: (formData: FormData) => Promise
         disabled={addedUnits < 1}
         tone="neutral"
         title={`Add ${addedUnits} unit${addedUnits === 1 ? "" : "s"} to stock?`}
-        description="This updates the stock count buyers see as available right away."
+        description="This updates the stock count customers see as available right away."
         confirmLabel="Yes, restock"
         trigger={
           <button

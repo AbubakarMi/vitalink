@@ -4,8 +4,8 @@ import {
   PATH_PREFIX_ACCOUNT_TYPE,
   dashboardPathForAccountType,
   matchProtectedPrefix,
-  isBuyerPathOpenToVendors,
-  isGuestAllowedBuyerPath,
+  isCustomerPathOpenToVendors,
+  isGuestAllowedCustomerPath,
 } from "@/lib/auth/route-groups";
 
 /**
@@ -26,9 +26,9 @@ export default async function proxy(request: NextRequest) {
 
   if (!accessToken) {
     // The cart itself is guest-accessible (see route-groups.ts's
-    // isGuestAllowedBuyerPath) — an anonymous visitor gets straight through,
+    // isGuestAllowedCustomerPath) — an anonymous visitor gets straight through,
     // no refresh-cookie check needed since there's nothing to refresh.
-    if (prefix === "buyer" && isGuestAllowedBuyerPath(pathname)) {
+    if (prefix === "customer" && isGuestAllowedCustomerPath(pathname)) {
       return NextResponse.next();
     }
     // No refresh cookie either -> definitely unauthenticated, redirect now.
@@ -53,7 +53,7 @@ export default async function proxy(request: NextRequest) {
 
   const allowed =
     claims.accountType === PATH_PREFIX_ACCOUNT_TYPE[prefix] ||
-    (prefix === "buyer" && claims.accountType === "Vendor" && isBuyerPathOpenToVendors(pathname));
+    (prefix === "customer" && claims.accountType === "Vendor" && isCustomerPathOpenToVendors(pathname));
 
   if (!allowed) {
     return NextResponse.redirect(new URL(dashboardPathForAccountType(claims.accountType), request.url));
@@ -66,7 +66,7 @@ function redirectToLogin(request: NextRequest) {
   const loginUrl = new URL("/login", request.url);
   // pathname + search, not pathname alone — this fast path runs before any
   // page-level redirect target is built, so dropping the query string here
-  // would silently lose it even when a page (e.g. /buyer/dashboard?q=) goes
+  // would silently lose it even when a page (e.g. /customer/dashboard?q=) goes
   // out of its way to preserve it through requireAccountType.
   loginUrl.searchParams.set("redirect", request.nextUrl.pathname + request.nextUrl.search);
   return NextResponse.redirect(loginUrl);
@@ -75,11 +75,11 @@ function redirectToLogin(request: NextRequest) {
 export const config = {
   matcher: [
     /*
-     * Only run on the protected prefixes (/buyer, /vendor, /admin). Everything else
+     * Only run on the protected prefixes (/customer, /vendor, /admin). Everything else
      * — (marketing), (auth), static assets, image optimization — passes through
      * untouched. See lib/auth/route-groups.ts for the prefix list.
      */
-    "/buyer/:path*",
+    "/customer/:path*",
     "/vendor/:path*",
     "/admin/:path*",
   ],

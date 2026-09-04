@@ -13,7 +13,7 @@ import { AccountSlot, AccountSlotFallback } from "@/components/marketing/account
  * The account slot (Login/Sign Up vs. the real account menu) is
  * components/marketing/account-slot.tsx, shared with MarketplaceHeader —
  * this used to hardcode Login/Sign Up unconditionally, so a signed-in
- * buyer, vendor, or admin browsing the public homepage saw guest-only nav
+ * customer, vendor, or admin browsing the public homepage saw guest-only nav
  * even though they were already authenticated. Wrapped in its own Suspense
  * boundary (not making this whole header async) so the rest of the
  * homepage keeps its static shell under Cache Components/PPR — only the

@@ -30,7 +30,7 @@ const STATUS_TABS = [
 
 /** Order fulfillment — dashboard's "Fulfill Orders" quick action. No backend
  * Order API exists yet (design doc §1), so mock-only (lib/api/admin/orders.ts),
- * same as buyer/vendor mock data. */
+ * same as customer/vendor mock data. */
 export default async function AdminOrdersPage({ searchParams }: PageProps) {
   await requireAccountType("admin", "/admin/orders");
   const params = await searchParams;

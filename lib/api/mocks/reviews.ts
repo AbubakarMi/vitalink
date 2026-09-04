@@ -12,7 +12,7 @@ export interface MockReview {
 // testimony to a specific person would be fabricated social proof (design
 // doc §1). Kept the Lorem Ipsum body (a universally recognized placeholder,
 // not deceptive on its own) but the product detail page renders it under a
-// generic "Verified Buyer" label instead of a fake identity, and shows the
+// generic "Verified Customer" label instead of a fake identity, and shows the
 // real per-product review count rather than the design's fabricated "102".
 const LOREM =
   "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed neque erat, porta vel malesuada vitae, consequat id turpis. Donec ut suscipit augue, sit amet fringilla augue. Integer quis ligula eget magna vehicula volutpat.";

@@ -3,10 +3,12 @@ import { ShoppingBag, Store, ArrowRight } from "lucide-react";
 import { AuthCard } from "@/components/auth/auth-card";
 
 /**
- * Register step 1 of 2 — just the buyer/vendor choice, no form fields here.
+ * Register step 1 of 2 — just the customer/vendor choice, no form fields here.
  * Route uses /register/vendor (not /register/seller) to stay consistent with
- * the rest of the app's existing "vendor" naming (/vendor/dashboard,
- * /vendor-apply, lib/auth/route-groups.ts's PATH_PREFIX_ACCOUNT_TYPE).
+ * the rest of the app's existing "vendor" naming across the codebase
+ * (/vendor/dashboard, /vendor-apply, lib/auth/route-groups.ts's
+ * PATH_PREFIX_ACCOUNT_TYPE — a real-world marketplace like Jumia calls this
+ * role "seller," this app calls it "vendor" instead, consistently).
  */
 export default function RegisterPage() {
   return (
@@ -25,14 +27,14 @@ export default function RegisterPage() {
     >
       <div className="space-y-3">
         <Link
-          href="/register/buyer"
+          href="/register/customer"
           className="group flex items-center gap-4 rounded-xl border border-line bg-white p-5 shadow-sm transition-all hover:-translate-y-0.5 hover:border-ink hover:bg-mint hover:shadow-md"
         >
           <span className="flex size-11 shrink-0 items-center justify-center rounded-full bg-mint text-ink-soft group-hover:bg-white">
             <ShoppingBag className="size-5" aria-hidden />
           </span>
           <span className="flex-1">
-            <span className="block font-semibold text-ink">Buyer</span>
+            <span className="block font-semibold text-ink">Customer</span>
             <span className="block text-sm text-text-muted">Source and order medical &amp; lab equipment.</span>
           </span>
           <ArrowRight className="size-5 text-ink-soft opacity-0 transition-opacity group-hover:opacity-100" aria-hidden />

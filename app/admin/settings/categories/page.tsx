@@ -24,7 +24,7 @@ export default async function AdminCategoriesSettingsPage() {
         <AddCategoryModal />
       </div>
       <p className="mt-2 max-w-xl text-sm text-text-muted">
-        The taxonomy vendors list products into and buyers filter by. Deactivating a category hides it from new
+        The taxonomy vendors list products into and customers filter by. Deactivating a category hides it from new
         listings without deleting anything already assigned to it.
       </p>
 

@@ -43,7 +43,7 @@ const NAV_ITEMS = [
   { href: "/admin/dashboard", label: "Overview", icon: ChartPie },
   { href: "/admin/orders", label: "Orders", icon: ShoppingBag },
   { href: "/admin/users", label: "Users", icon: UsersIcon },
-  { href: "/admin/buyers", label: "Buyers", icon: Contact },
+  { href: "/admin/customers", label: "Customers", icon: Contact },
   { href: "/admin/transactions", label: "Transactions", icon: ArrowLeftRight },
   { href: "/admin/settlements", label: "Settlements", icon: Landmark },
 ] as const;

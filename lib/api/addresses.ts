@@ -19,7 +19,7 @@ export { ADDRESS_LABELS, type AddressLabel };
 /**
  * Customer address book — real endpoints confirmed from source
  * (vitalink-backend Web.Api/Endpoints/Customer/*, Application/Features/
- * Customer/{Queries,Commands}/*CustomerAddress*). A buyer can save several
+ * Customer/{Queries,Commands}/*CustomerAddress*). A customer can save several
  * labeled addresses and mark one as the default shipping and/or billing
  * address — this is the actual prerequisite for real order placement
  * (Carts/Commands/PlaceOrder needs ShippingAddressId/BillingAddressId, not
@@ -29,7 +29,7 @@ export { ADDRESS_LABELS, type AddressLabel };
  * CUSTOMER_ADDRESS_DATA_SOURCE flips every function below between that live
  * backend and an in-memory mock (lib/api/mocks/address-store.ts), same seam
  * as VENDOR_PROFILE_DATA_SOURCE/PRODUCTS_DATA_SOURCE/AUTH_DATA_SOURCE. This
- * supersedes lib/api/buyer-profile.ts's single-address
+ * supersedes lib/api/customer-profile.ts's single-address
  * getDeliveryAddress/saveDeliveryAddress, which only ever modeled one flat
  * address with no label/recipient/default concept at all.
  */

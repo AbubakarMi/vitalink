@@ -40,7 +40,7 @@ the existing stub pattern for those routes today.
 - Two incompatible "view a product" treatments: `Vendor View Product.pdf` is a compact
   draft-review card ("Ordered Product" / "Confirm the information... and generate a
   tutorial"), `User Oder.pdf` (misleadingly named — it's vendor-side, reachable from
-  the vendor's Orders nav, not a buyer page) is a full public-style page with spec tabs
+  the vendor's Orders nav, not a customer page) is a full public-style page with spec tabs
   and reviews. Resolved in §5 below as one component with two states rather than
   building both as separate pages.
 - Stat tables show fabricated large numbers ("22,500 results", "1,465 products",
@@ -72,9 +72,9 @@ Follows the existing mock/live seam pattern (`lib/api/products.ts`'s
 - Extend `ProductSchema` (`lib/api/products.ts`) with vendor-management fields:
   `vendorId: string.optional()`, `status: z.enum(["Active", "PendingReview", "OutOfStock", "Archived", "Rejected"]).optional()`,
   `promoPrice: z.number().optional()`, `lowStockThreshold: z.number().optional()`,
-  `sku: z.string().optional()`. All new fields optional so the existing buyer-facing
+  `sku: z.string().optional()`. All new fields optional so the existing customer-facing
   marketplace schema/usages are unaffected. A vendor's inventory *is* the marketplace
-  catalog, scoped to their own `vendorId` with extra management fields buyer views
+  catalog, scoped to their own `vendorId` with extra management fields customer views
   ignore — one shared schema, role-scoped views, not a forked data model.
 - New `lib/api/mocks/vendor-inventory-store.ts` — mutable, `globalThis`-pinned like
   `vendor-profile-store.ts` (Next dev-mode Fast Refresh re-evaluates server modules far

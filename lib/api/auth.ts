@@ -170,7 +170,7 @@ export async function register(input: RegisterInput): Promise<RegisterResponse> 
  * other reliable hook — idempotent by design (see the 409 swallow below),
  * so calling it on every login is harmless once a profile already exists.
  * No UI anywhere collects "Individual vs Institutional" (this app only
- * has one buyer registration form), so this always creates an Individual
+ * has one customer registration form), so this always creates an Individual
  * profile — Institutional customers aren't reachable through this app yet.
  */
 export async function ensureCustomerProfile(): Promise<void> {

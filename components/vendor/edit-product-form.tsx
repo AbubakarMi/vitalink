@@ -182,7 +182,7 @@ export function EditProductForm({ product }: { product: Product }) {
       <div>
         <p className="text-sm font-medium text-ink-soft">Primary Image</p>
         <p className="mt-1 text-xs text-text-muted">
-          This is the image buyers see first — on the marketplace grid, search results, and at the top of the
+          This is the image customers see first — on the marketplace grid, search results, and at the top of the
           product page. Use a clear, high-quality photo.
         </p>
 
@@ -218,7 +218,7 @@ export function EditProductForm({ product }: { product: Product }) {
           Supporting Images <span className="text-text-muted">(optional)</span>
         </p>
         <p className="mt-1 text-xs text-text-muted">
-          Extra angles, accessories, or close-up detail shots — shown when a buyer opens the full product page.
+          Extra angles, accessories, or close-up detail shots — shown when a customer opens the full product page.
         </p>
 
         {supportingImages.length > 0 && (

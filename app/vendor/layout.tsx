@@ -27,7 +27,7 @@ export default async function VendorLayout({ children }: { children: React.React
       <VendorHoldingPage
         icon={ClipboardList}
         tone="ink"
-        title="Finish setting up your seller account"
+        title="Finish setting up your vendor account"
         description="You're signed in, but haven't completed your business profile, compliance documents, or payout details yet."
         action={{ href: "/vendor-apply", label: "Continue vendor onboarding" }}
       />

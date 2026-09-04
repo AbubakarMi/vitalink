@@ -2,7 +2,7 @@ import "server-only";
 import { ApiError } from "./client";
 import { verifySession } from "@/lib/auth/dal";
 import { listProducts, type Product } from "./products";
-import { listChats, getChat, createChat, appendMessage, seedDemoBuyerChatOnce, type ChatSession } from "./mocks/intent-search-store";
+import { listChats, getChat, createChat, appendMessage, seedDemoCustomerChatOnce, type ChatSession } from "./mocks/intent-search-store";
 
 export type { ChatSession, ChatMessage } from "./mocks/intent-search-store";
 
@@ -17,7 +17,7 @@ export type { ChatSession, ChatMessage } from "./mocks/intent-search-store";
  * assistant here only ever talks about matching catalog products.
  */
 
-async function currentBuyerId(): Promise<string> {
+async function currentCustomerId(): Promise<string> {
   const session = await verifySession();
   if (!session) {
     throw new ApiError(401, "Not signed in.");
@@ -25,15 +25,15 @@ async function currentBuyerId(): Promise<string> {
   return session.userId;
 }
 
-export async function listChatsForBuyer(): Promise<ChatSession[]> {
-  const buyerId = await currentBuyerId();
-  seedDemoBuyerChatOnce(buyerId, await listProducts());
-  return listChats(buyerId);
+export async function listChatsForCustomer(): Promise<ChatSession[]> {
+  const customerId = await currentCustomerId();
+  seedDemoCustomerChatOnce(customerId, await listProducts());
+  return listChats(customerId);
 }
 
-export async function getChatForBuyer(chatId: string): Promise<ChatSession | null> {
-  const buyerId = await currentBuyerId();
-  return getChat(buyerId, chatId) ?? null;
+export async function getChatForCustomer(chatId: string): Promise<ChatSession | null> {
+  const customerId = await currentCustomerId();
+  return getChat(customerId, chatId) ?? null;
 }
 
 const STOPWORDS = new Set([
@@ -127,20 +127,20 @@ export interface AskIntentSearchResult {
  * assistant's reply, return the updated chat plus the recommended products
  * (looked up by id so the UI can render full cards, not just ids). */
 export async function askIntentSearch(query: string, chatId?: string): Promise<AskIntentSearchResult> {
-  const buyerId = await currentBuyerId();
+  const customerId = await currentCustomerId();
   const trimmed = query.trim();
   if (!trimmed) {
     throw new ApiError(400, "Ask a question first.");
   }
 
-  const chat = chatId ? getChat(buyerId, chatId) : undefined;
+  const chat = chatId ? getChat(customerId, chatId) : undefined;
   if (chatId && !chat) {
     throw new ApiError(404, "Chat not found.");
   }
-  const session = chat ?? createChat(buyerId, trimmed);
+  const session = chat ?? createChat(customerId, trimmed);
   const isFollowUp = session.messages.length > 0;
 
-  appendMessage(buyerId, session.id, { role: "user", content: trimmed });
+  appendMessage(customerId, session.id, { role: "user", content: trimmed });
 
   const catalog = await listProducts();
   const queryWords = tokenize(trimmed);
@@ -164,7 +164,7 @@ export async function askIntentSearch(query: string, chatId?: string): Promise<A
   // described as "matches" in the generated text.
   const answer = buildAnswer(trimmed, hasMatches ? products : [], isFollowUp, budget);
 
-  const updated = appendMessage(buyerId, session.id, {
+  const updated = appendMessage(customerId, session.id, {
     role: "assistant",
     content: answer,
     productIds: products.map((p) => p.id),

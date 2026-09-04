@@ -23,8 +23,8 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
   const [emailStatus, setEmailStatus] = useState<EmailCheckStatus>("idle");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const requestIdRef = useRef(0);
-  // ?redirect= (most commonly /buyer/checkout, via the cart page's guest
-  // prompt — components/buyer/checkout-cta.tsx) — registering never logs
+  // ?redirect= (most commonly /customer/checkout, via the cart page's guest
+  // prompt — components/customer/checkout-cta.tsx) — registering never logs
   // you in outright (mock: still a separate login step; live: also needs
   // email verification first), so this just carries forward to the "Go to
   // login" link below rather than being submitted with the form itself.

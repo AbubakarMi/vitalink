@@ -71,7 +71,7 @@ globalForMockVendorProfiles.__vitalinkMockVendorProfiles = profilesByUserId;
 /**
  * The seeded `vendor@vitalink.dev` demo account (lib/api/mocks/auth-store.ts)
  * has a login but, unlike the seeded users, no profile — so logging in with
- * it alone always lands on the "finish setting up your seller account" page,
+ * it alone always lands on the "finish setting up your vendor account" page,
  * not the dashboard. Seeding a completed, Verified profile for it here means
  * the demo credentials in docs/MOCK_AUTH.md actually reach the vendor
  * dashboard on first login, not just brand-new self-registered accounts.

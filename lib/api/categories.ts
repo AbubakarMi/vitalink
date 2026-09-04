@@ -11,7 +11,7 @@ const CategorySchema = z.object({
 export type Category = z.infer<typeof CategorySchema>;
 
 /**
- * Used by the public landing/catalog pages and the authenticated buyer catalog.
+ * Used by the public landing/catalog pages and the authenticated customer catalog.
  * No SOURCE toggle, unlike products.ts: `Brands.List`/`ProductCategories.List`
  * are `isAdmin: true` only in the backend's PermissionRegistry — no account type
  * (not even Customer) can read this data today, so there's no "live" branch to

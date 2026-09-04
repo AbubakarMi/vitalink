@@ -74,7 +74,7 @@ export function CountrySelectField({
 /**
  * States/provinces for whichever country is currently selected in the
  * sibling CountrySelectField (countryCode prop, an ISO2 the parent tracks —
- * see components/buyer/checkout-view.tsx). Re-mounts (key={countryCode})
+ * see components/customer/checkout-view.tsx). Re-mounts (key={countryCode})
  * whenever the country changes so a stale selection from the previous
  * country can't linger as this field's uncontrolled defaultValue. Some
  * countries have no state/province subdivisions in the library's data at

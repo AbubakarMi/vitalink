@@ -13,7 +13,7 @@ import { CartIcon } from "@/components/marketplace/cart-icon";
  * Persistent vendor dashboard chrome (sidebar + header) — wraps every page
  * under app/vendor/ once a vendor is signed in and verified. Role-scoped
  * per the "components never cross role boundaries" rule (frontend
- * architecture doc §2.3): this never gets imported from app/buyer or
+ * architecture doc §2.3): this never gets imported from app/customer or
  * app/admin, even though a sidebar+header shell "looks reusable".
  *
  * Below `lg` the sidebar collapses into a hamburger-triggered slide-over
@@ -25,7 +25,7 @@ const NAV_ITEMS = [
   { href: "/vendor/dashboard", label: "Overview", icon: ChartPie },
   // A vendor is still a shopper — /products is the public marketplace catalog,
   // open to any signed-in account type (unlike everything else below, which
-  // is vendor-only). See lib/auth/route-groups.ts's isBuyerPathOpenToVendors
+  // is vendor-only). See lib/auth/route-groups.ts's isCustomerPathOpenToVendors
   // for the cart/checkout/orders side of this.
   { href: "/products", label: "Marketplace", icon: Store },
   { href: "/vendor/products", label: "Inventory", icon: Package },
@@ -113,8 +113,8 @@ export function DashboardShell({
         </div>
 
         <div className="flex items-center gap-2 justify-self-end sm:gap-3">
-          {/* Buying, not selling — this is the same cart a buyer uses, since
-              /buyer/cart is open to Vendor sessions (route-groups.ts). */}
+          {/* Buying, not selling — this is the same cart a customer uses, since
+              /customer/cart is open to Vendor sessions (route-groups.ts). */}
           <CartIcon />
           <button
             type="button"

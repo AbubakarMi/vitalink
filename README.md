@@ -1,7 +1,7 @@
 # Vitalink Frontend
 
 Next.js 16 frontend for Vitalink, a healthcare marketplace with three distinct
-experiences — buyer, vendor, admin — against a .NET backend
+experiences — customer, vendor, admin — against a .NET backend
 (`vitalink-backend`). Full architecture rationale lives in
 [`docs/superpowers/specs/2026-08-06-vitalink-frontend-architecture-design.md`](docs/superpowers/specs/2026-08-06-vitalink-frontend-architecture-design.md);
 this section is the condensed version for engineers working in the codebase
@@ -17,30 +17,30 @@ npm run dev
 
 ## Role separation — read this before "simplifying" anything
 
-This app deliberately keeps buyer, vendor, and admin experiences structurally
+This app deliberately keeps customer, vendor, and admin experiences structurally
 separate. If a change looks like it would be simpler by sharing a component
 or a layout across roles, it's very likely reintroducing the exact problem
 this structure exists to prevent — read the rest of this section first.
 
-### Why real path segments, not (buyer)/(vendor)/(admin) route groups
+### Why real path segments, not (customer)/(vendor)/(admin) route groups
 
-`app/buyer/`, `app/vendor/`, and `app/admin/` are real URL segments, not
+`app/customer/`, `app/vendor/`, and `app/admin/` are real URL segments, not
 parenthesized route groups. An earlier draft of this architecture used route
 groups for all three, which doesn't work: route groups don't add a URL
-segment, so `(buyer)/dashboard` and `(vendor)/dashboard` would both resolve
+segment, so `(customer)/dashboard` and `(vendor)/dashboard` would both resolve
 to `/dashboard` and fail the build on collision. Real segments also make
 `proxy.ts`'s matching unambiguous — see below.
 
 ### Why components never cross role boundaries
 
 `components/ui/` holds shared primitives (buttons, cards, form fields).
-`components/{buyer,vendor,admin,marketing}/` hold role-scoped composed
+`components/{customer,vendor,admin,marketing}/` hold role-scoped composed
 components. **A component in one role's folder must never be imported by
 another role's route**, even when it looks reusable. This is exactly how
 healthcare marketplaces leak data across roles in practice: a vendor payout
-component gets reused in a "similar-looking" buyer order-summary view
+component gets reused in a "similar-looking" customer order-summary view
 because someone didn't want to duplicate a few lines of markup, and now a
-buyer can see another vendor's settlement details. If two roles need
+customer can see another vendor's settlement details. If two roles need
 visually similar UI, duplicate it or extract a shared primitive into
 `components/ui/` — don't reach across the role boundary.
 
@@ -50,7 +50,7 @@ Three layers, and they do different jobs:
 
 1. **`proxy.ts`** — fast, optimistic, cookie-only (no network/DB calls).
    Redirects obviously-wrong requests (wrong role, no session) before any
-   route code runs. Matches on the real `/buyer`, `/vendor`, `/admin`
+   route code runs. Matches on the real `/customer`, `/vendor`, `/admin`
    prefixes (`lib/auth/route-groups.ts`).
 2. **`lib/auth/dal.ts`** (`requireSession`/`requireAccountType`) — the actual
    authoritative check, called at the top of every protected page and every
@@ -71,7 +71,7 @@ an uncovered path — this is exactly why step 2 exists independently of step
 ### `AccountType` ↔ path-prefix naming
 
 The backend's `AccountType` enum is `Customer | Vendor | Staff`. This app's
-path prefixes are `/buyer`, `/vendor`, `/admin`. These are deliberately
+path prefixes are `/customer`, `/vendor`, `/admin`. These are deliberately
 different vocabularies (backend identity concept vs. product/UX language),
 and the mapping between them lives in exactly one place:
 `lib/auth/route-groups.ts`'s `PATH_PREFIX_ACCOUNT_TYPE`. Don't re-derive or

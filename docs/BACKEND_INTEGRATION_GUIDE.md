@@ -183,8 +183,8 @@ regardless of `PRODUCTS_DATA_SOURCE`).
   `{cart: {id, ownerType: "Guest", status: "Active", items: []}, quote: null}`
   — `quote` correctly null since `GetCheckoutQuote` is auth-only and this
   request was anonymous.
-- `/buyer/cart` correctly 307-redirects an anonymous visitor to
-  `/login?redirect=%2Fbuyer%2Fcart`.
+- `/customer/cart` correctly 307-redirects an anonymous visitor to
+  `/login?redirect=%2Fcustomer%2Fcart`.
 
 **Not yet click-tested:** an actual product detail page / Buy Box /
 add-to-cart / priced-quote flow, since there is no live product to click
@@ -198,9 +198,9 @@ other fixes in this section), just not exercised through a browser yet.
 ### 0d. Status (2026-09-03) — `CUSTOMER_ADDRESS_DATA_SOURCE=live`: real customer address book
 
 Also confirmed live via the same real backend + mock-mode toggle so no live
-server was even required to test the buyer-facing parts of this: this app's
-old "delivery address" concept was a single free-text address per buyer
-(`lib/api/buyer-profile.ts`, now deleted) with no relationship to anything
+server was even required to test the customer-facing parts of this: this app's
+old "delivery address" concept was a single free-text address per customer
+(`lib/api/customer-profile.ts`, now deleted) with no relationship to anything
 real — the actual backend (`Web.Api/Endpoints/Customer/*`,
 `Application/Features/Customer/{Queries,Commands}/*CustomerAddress*`) has a
 full address book: several labeled addresses per customer (Home/Office/
@@ -208,9 +208,9 @@ Department/Other) each independently markable as the default shipping
 and/or billing address. Built a real, parallel `lib/api/addresses.ts`
 adapter (mock + live, same `SOURCE` toggle pattern as
 `VENDOR_PROFILE_DATA_SOURCE`) matching that shape exactly, and a new
-Settings UI (`components/buyer/address-book.tsx`) to manage it —
+Settings UI (`components/customer/address-book.tsx`) to manage it —
 add/edit/remove, set-default-shipping, set-default-billing. Checkout's
-delivery-address step (`components/buyer/checkout-view.tsx`) now picks from
+delivery-address step (`components/customer/checkout-view.tsx`) now picks from
 this saved address book instead of a fresh free-text form every time — this
 is also the actual prerequisite for real order placement, since
 `Carts/Commands/PlaceOrder` needs a `ShippingAddressId`/`BillingAddressId`
@@ -224,12 +224,12 @@ form and you're done" — a genuinely separate, payment-critical subsystem
 (idempotency keys, webhook handling, payment-status polling) that stays out
 of scope for this pass, same as before. `completeCheckoutAction` (checkout's
 actual "place order" button) is still the pre-existing mock order flow
-(`lib/api/buyer-orders.ts`) — it now reads the address from a saved
+(`lib/api/customer-orders.ts`) — it now reads the address from a saved
 `CustomerAddress` instead of a free-text form, but doesn't call the real
 `PlaceOrder` endpoint.
 
 **Found and fixed one real frontend bug while building this** (not a
-backend issue): the new `components/buyer/address-book.tsx` (a Client
+backend issue): the new `components/customer/address-book.tsx` (a Client
 Component) imported `ADDRESS_LABELS` — a real runtime value, not just a
 type — directly from `lib/api/addresses.ts`, which starts with
 `import "server-only"`. That import guard throws the moment any module
@@ -613,7 +613,7 @@ sends: filtering is by **`brandId`/`categoryId` (GUIDs)**, not `brand` (name) /
 missing `relevance`/`rating`/`newest`).
 
 **This means wiring `PRODUCTS_DATA_SOURCE=live` is a real feature of work, not a
-flag flip** — the buyer-facing catalog UI needs an adapter mapping (Product+Offer →
+flag flip** — the customer-facing catalog UI needs an adapter mapping (Product+Offer →
 today's flat card shape, or a broader refactor to show multiple vendor offers per
 product, which is arguably the more honest UI given the backend explicitly supports
 it). Same applies to the vendor-side product wizard (`lib/api/vendor-products.ts`):
@@ -734,7 +734,7 @@ any authenticated session, no specific permission. Status column:
 | POST | `auth/login/otp-email/resend` | anon | 🟢 `resendLoginOtpEmail()` |
 | POST | `auth/forgot-password` | anon | ⬜ unconsumed — no forgot-password UI |
 | POST | `auth/reset-password` | anon | ⬜ unconsumed |
-| POST | `auth/mfa/totp/setup` | auth | ⬜ unconsumed — this is the **real** MFA enrollment endpoint the recently-added `components/{buyer,vendor}/mfa-settings.tsx` should call once wired; today it only writes to a local mock store (`lib/api/security.ts`) |
+| POST | `auth/mfa/totp/setup` | auth | ⬜ unconsumed — this is the **real** MFA enrollment endpoint the recently-added `components/{customer,vendor}/mfa-settings.tsx` should call once wired; today it only writes to a local mock store (`lib/api/security.ts`) |
 | POST | `auth/mfa/totp/verify` | auth | ⬜ unconsumed (confirms enrollment) |
 | DELETE | `auth/mfa/totp` | auth | ⬜ unconsumed |
 
@@ -756,7 +756,7 @@ any authenticated session, no specific permission. Status column:
 
 | Verb | Route | Access | Frontend status |
 |---|---|---|---|
-| POST | `assistant/search` | anon | ⬜ `lib/api/intent-search.ts` (backs `components/buyer/intent-search-chat.tsx`) is entirely mock-templated — this is the real one-shot version |
+| POST | `assistant/search` | anon | ⬜ `lib/api/intent-search.ts` (backs `components/customer/intent-search-chat.tsx`) is entirely mock-templated — this is the real one-shot version |
 | POST | `assistant/conversations` | auth | ⬜ unconsumed — no multi-turn conversation UI exists yet |
 | GET | `assistant/conversations` | auth | ⬜ unconsumed |
 | GET | `assistant/conversations/{id:guid}` | auth | ⬜ unconsumed |
@@ -829,15 +829,15 @@ any authenticated session, no specific permission. Status column:
 | DELETE | `users/customers/cart` | anon | ⬜ unconsumed |
 | POST | `users/customers/cart/claim` | auth | ⬜ unconsumed — should be called right after login/register, see §2.7 |
 | POST | `users/customers/checkout/quote` | auth | ⬜ unconsumed — real price/fee/tax breakdown before placing an order |
-| POST | `users/customers/checkout` | auth | ⬜ **PlaceOrder** — `lib/api/buyer-orders.ts`'s checkout is entirely mock |
+| POST | `users/customers/checkout` | auth | ⬜ **PlaceOrder** — `lib/api/customer-orders.ts`'s checkout is entirely mock |
 | GET | `.../orders/{orderId:guid}/payment` | Customers.Read | ⬜ unconsumed |
 | GET | `.../orders/{orderId:guid}/fulfillments` | Fulfillments.Read | ⬜ unconsumed |
 | GET | `users/customers/fulfillments/{id:guid}` | Fulfillments.Read | ⬜ unconsumed |
 | POST | `.../orders/{orderId:guid}/returns` | Fulfillments.Create | ⬜ unconsumed — no return-request UI exists |
-| POST | `users/customers/profile` | Customers.Create | ⬜ unconsumed — check if this needs calling right after buyer registration |
+| POST | `users/customers/profile` | Customers.Create | ⬜ unconsumed — check if this needs calling right after customer registration |
 | GET | `users/customers/profile` | Customers.Read | ⬜ unconsumed |
 | PUT | `users/customers/profile` | Customers.Update | ⬜ unconsumed |
-| POST | `users/customers/addresses` | Customers.Create | 🟡 mock equivalent (`lib/api/buyer-profile.ts`'s delivery address) is a single address, not a full address book |
+| POST | `users/customers/addresses` | Customers.Create | 🟡 mock equivalent (`lib/api/customer-profile.ts`'s delivery address) is a single address, not a full address book |
 | GET | `users/customers/addresses` | Customers.Read | 🟡 same gap |
 | GET | `.../addresses/{id:guid}` | Customers.Read | ⬜ unconsumed |
 | PUT | `.../addresses/{id:guid}` | Customers.Update | ⬜ unconsumed |
@@ -849,7 +849,7 @@ any authenticated session, no specific permission. Status column:
 
 | Verb | Route | Access | Frontend status |
 |---|---|---|---|
-| PUT | `users/me` | auth | ⬜ unconsumed — buyer/vendor settings pages show read-only name/email today because "no update-profile endpoint exists"; **it does now** |
+| PUT | `users/me` | auth | ⬜ unconsumed — customer/vendor settings pages show read-only name/email today because "no update-profile endpoint exists"; **it does now** |
 | PUT | `users/me/avatar` | auth | ⬜ unconsumed |
 
 ### Payments — `api/v1/payments/*`
@@ -912,7 +912,7 @@ Customer) is the read side a checkout success/pending page would poll.
 
 **Admin surfaces with real backend endpoints but no frontend adapter/UI at all:**
 Offers moderation, admin Fulfillments, admin Returns, Brands CRUD, Product
-Categories CRUD (the buyer-facing category list is mock-static today).
+Categories CRUD (the customer-facing category list is mock-static today).
 
 **Admin surfaces the frontend built (mock-only) with *no* matching backend
 endpoint at all** — these were built ahead of the backend and need either a backend
@@ -954,13 +954,13 @@ same one-by-one ordinal/case treatment §2.2's two fixes used, as each is exerci
 4. **Backend**: add a way for the frontend to know the current user's permissions
    (§2.6) — needed before `PERMISSIONS_SOURCE=live` can do anything but return
    `false` everywhere.
-5. **Frontend, larger**: design the Product/Offer split into the buyer catalog and
+5. **Frontend, larger**: design the Product/Offer split into the customer catalog and
    vendor product-wizard UI (§2.5) — this is real product/UX work, not a mechanical
    fix, and blocks `PRODUCTS_DATA_SOURCE=live` and most of the vendor Products/Offers
    endpoints above.
 6. **Frontend, larger**: build real adapters for Cart/Checkout/Orders/Fulfillments/
    Returns (customer and vendor sides) — the backend now has all of this; today
-   it's 100% mock (`lib/cart/store.tsx`, `lib/api/buyer-orders.ts`,
+   it's 100% mock (`lib/cart/store.tsx`, `lib/api/customer-orders.ts`,
    `lib/api/vendor-orders.ts`, `lib/api/orders.ts`). Remember the guest-cart claim
    step (§2.7).
 7. **Backend-or-accept-as-mock**: the admin Analytics/Orders/Settlements/

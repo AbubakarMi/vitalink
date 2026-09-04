@@ -49,8 +49,8 @@ async function redirectToDashboard(redirectTo?: string | null): Promise<never> {
   if (!session) {
     return redirect("/");
   }
-  // redirectTo (from ?redirect= — most commonly /buyer/checkout, via
-  // components/buyer/checkout-cta.tsx's login prompt) wins over the
+  // redirectTo (from ?redirect= — most commonly /customer/checkout, via
+  // components/customer/checkout-cta.tsx's login prompt) wins over the
   // account's own dashboard when present, so a guest who built a cart and
   // logged in to pay actually lands back on checkout instead of being sent
   // somewhere else and losing their place.

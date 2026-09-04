@@ -46,7 +46,7 @@ export function ArchivedProductRow({ product, onUnarchive }: { product: Product;
             onConfirm={onUnarchive}
             tone="neutral"
             title={`Un-archive "${product.name}"?`}
-            description="This puts the listing back on the marketplace, visible and purchasable by buyers again."
+            description="This puts the listing back on the marketplace, visible and purchasable by customers again."
             confirmLabel="Yes, un-archive it"
             trigger={<button type="button" className="font-medium text-verified transition-colors hover:text-ink">Un-archive</button>}
           />

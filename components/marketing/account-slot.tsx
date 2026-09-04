@@ -22,17 +22,17 @@ import { cn } from "@/lib/utils";
  */
 
 const ACCOUNT_TYPE_LABEL: Record<string, string> = {
-  Customer: "Buyer",
+  Customer: "Customer",
   Vendor: "Vendor",
   Staff: "Staff",
 };
 
 /** Extra menu links on top of "Sign Out" — a signed-in visitor on a public
  * page still needs a way to their real dashboard, and everyone here can
- * shop, so "My Orders" always applies (route-groups.ts opens /buyer/orders
+ * shop, so "My Orders" always applies (route-groups.ts opens /customer/orders
  * to Vendor sessions too, on top of Customer). */
 function accountMenuLinks(accountType: AccountType): { href: string; label: string }[] {
-  const links = [{ href: "/buyer/orders", label: "My Orders" }];
+  const links = [{ href: "/customer/orders", label: "My Orders" }];
   if (accountType === "Vendor") links.push({ href: "/vendor/dashboard", label: "Vendor Dashboard" });
   if (accountType === "Staff") links.push({ href: "/admin/dashboard", label: "Admin Dashboard" });
   return links;

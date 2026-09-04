@@ -274,7 +274,7 @@ function seedVendorProducts(vendorId: string): Product[] {
       status: seed.status,
       sku: `VIT-${(seed.brand ?? "GEN").replace(/[^A-Za-z]/g, "").slice(0, 3).toUpperCase()}${String(index + 1).padStart(4, "0")}`,
       lowStockThreshold: seed.lowStockThreshold,
-      // createdAt/updatedAt aren't part of the shared Product shape (buyer
+      // createdAt/updatedAt aren't part of the shared Product shape (customer
       // views have no use for them) — dates only matter for the mock order
       // seed in vendor-orders-store.ts, which references these ids directly.
     } satisfies Product;

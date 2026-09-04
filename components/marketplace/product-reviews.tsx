@@ -3,7 +3,7 @@ import type { MockReview } from "@/lib/api/reviews";
 
 /** Figma EZER-KEY node 1591:3657 "SELLER INFO" / node 1591:3661 "Review".
  * Real per-product count (not the design's fabricated "102") and a generic
- * "Verified Buyer" attribution instead of the design's fake named reviewer —
+ * "Verified Customer" attribution instead of the design's fake named reviewer —
  * see lib/api/mocks/reviews.ts for why. */
 export function ProductReviews({ reviews }: { reviews: MockReview[] }) {
   return (
@@ -22,7 +22,7 @@ export function ProductReviews({ reviews }: { reviews: MockReview[] }) {
                   VB
                 </span>
                 <div className="min-w-0">
-                  <p className="font-bold text-[#1a4d3e]">Verified Buyer</p>
+                  <p className="font-bold text-[#1a4d3e]">Verified Customer</p>
                   <p className="text-xs text-text-muted">
                     {new Date(review.date)
                       .toLocaleDateString("en-GB", { day: "2-digit", month: "long", year: "numeric" })

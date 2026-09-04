@@ -16,7 +16,7 @@ interface PageProps {
 /**
  * Analytics & Reports — no backend Analytics/Orders API exists yet, so
  * every figure here is mock (lib/api/admin/analytics.ts), the same
- * mock-data approach used for buyer/vendor. Real once wired to a live
+ * mock-data approach used for customer/vendor. Real once wired to a live
  * Orders/Analytics endpoint — see that adapter's header comment. Two views:
  * "Analytics" (charts) and "Reports" (the same underlying figures as plain
  * tables, for a printable/scannable summary rather than visualizations).

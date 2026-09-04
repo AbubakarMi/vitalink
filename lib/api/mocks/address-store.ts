@@ -6,7 +6,7 @@ import { findMockUserByEmail } from "./auth-store";
  * Mock backing store for lib/api/addresses.ts, shaped to match the real
  * backend's CustomerAddress entity exactly (Domain/Identity/Customer/
  * CustomerAddress.cs) rather than the old single-address MockDeliveryAddress
- * (buyer-profile-store.ts, now superseded by this) — a buyer can save
+ * (customer-profile-store.ts, now superseded by this) — a customer can save
  * several labeled addresses (Home/Office/Department/Other) and mark one as
  * the default shipping and/or billing address, same as the real API.
  * globalThis-pinned like every other mock store, keyed by userId.
@@ -43,12 +43,12 @@ const globalForAddresses = globalThis as unknown as { __vitalinkAddresses?: Map<
 const addressesByUserId = globalForAddresses.__vitalinkAddresses ?? new Map<string, MockCustomerAddress[]>();
 globalForAddresses.__vitalinkAddresses = addressesByUserId;
 
-/** Same reasoning as buyer-profile-store's seedDemoBuyerAddressOnce — the
- * seeded buyer@vitalink.dev demo account otherwise starts with an empty
+/** Same reasoning as customer-profile-store's seedDemoCustomerAddressOnce — the
+ * seeded customer@vitalink.dev demo account otherwise starts with an empty
  * address book, which makes checkout/settings look broken rather than
  * empty-by-design on first login. */
 function seedDemoAddressOnce(): void {
-  const demoUser = findMockUserByEmail("buyer@vitalink.dev");
+  const demoUser = findMockUserByEmail("customer@vitalink.dev");
   if (!demoUser || addressesByUserId.has(demoUser.userId)) {
     return;
   }
@@ -57,7 +57,7 @@ function seedDemoAddressOnce(): void {
       id: randomUUID(),
       label: "Home",
       customLabel: null,
-      recipientName: "Ada Buyer",
+      recipientName: "Ada Customer",
       recipientPhoneNumber: "+2348000000001",
       organizationUnit: null,
       addressLine1: "No 12 Nza Street",

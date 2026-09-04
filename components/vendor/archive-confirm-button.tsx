@@ -5,7 +5,7 @@ import { ConfirmActionButton } from "@/components/ui/confirm-action-button";
 
 /**
  * "Archive this product?" confirmation — gates the archive action since
- * archiving pulls a live listing off the marketplace (buyers can no longer
+ * archiving pulls a live listing off the marketplace (customers can no longer
  * find/buy it) and isn't something a single misclick should do. Un-archiving
  * is the safe/reversible direction, so it doesn't get this treatment — see
  * app/vendor/products/archive/page.tsx's plain button. Thin wrapper around
@@ -26,7 +26,7 @@ export function ArchiveConfirmButton({
     <ConfirmActionButton
       onConfirm={onArchive}
       title={`Archive "${productName}"?`}
-      description="Doing so will take this product off the marketplace — it won't be available for buyers to purchase until you un-archive it later."
+      description="Doing so will take this product off the marketplace — it won't be available for customers to purchase until you un-archive it later."
       confirmLabel="Yes, archive it"
       trigger={
         <button

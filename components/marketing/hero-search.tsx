@@ -12,7 +12,7 @@ const QUICK_CATEGORIES = [
  * Hero — landing-page redesign (CEO "world class" pass, superseding pixel
  * fidelity to Figma EZER-KEY node 1707:7213). The source design's "Search by
  * intent/budget/specification" pills described an AI-search concept that
- * wasn't built at the time; components/buyer/intent-search-chat.tsx
+ * wasn't built at the time; components/customer/intent-search-chat.tsx
  * ("Vitalink Intelligence") now is, so SearchBar's "AI search" mode here
  * routes to it for real instead of the earlier placeholder category links.
  *

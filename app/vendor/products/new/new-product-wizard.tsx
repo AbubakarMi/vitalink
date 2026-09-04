@@ -37,7 +37,7 @@ const STEPS: WizardStepInfo[] = [
  * the mockup's 4 tiles used slightly different, mismatched labels ("Reagents"
  * and "Culture Media & Kits" as two separate tiles with no matching category
  * to file either under), so this uses the categories that actually filter
- * buyer-side browsing instead. */
+ * customer-side browsing instead. */
 const CATEGORIES = [
   { slug: "medical-equipment", label: "Medical Equipment", hint: "Medical & surgical devices", icon: Boxes },
   { slug: "scientific-tools", label: "Scientific Tools", hint: "Instruments & apparatus", icon: Microscope },
@@ -279,7 +279,7 @@ export function NewProductWizard() {
           <div>
             <p className="text-sm font-medium text-ink-soft">Primary Image</p>
             <p className="mt-1 text-xs text-text-muted">
-              This is the image buyers see first — on the marketplace grid, search results, and at the top of the
+              This is the image customers see first — on the marketplace grid, search results, and at the top of the
               product page. Use a clear, high-quality photo.
             </p>
 
@@ -315,7 +315,7 @@ export function NewProductWizard() {
               Supporting Images <span className="text-text-muted">(optional)</span>
             </p>
             <p className="mt-1 text-xs text-text-muted">
-              Extra angles, accessories, or close-up detail shots — shown when a buyer opens the full product page.
+              Extra angles, accessories, or close-up detail shots — shown when a customer opens the full product page.
             </p>
 
             {supportingImages.length > 0 && (
@@ -653,7 +653,7 @@ function GeneratedDetailsEditor({
         <textarea
           value={generated.shortDescription}
           onChange={(e) => onChange({ ...generated, shortDescription: e.target.value })}
-          placeholder="Describe the product for buyers…"
+          placeholder="Describe the product for customers…"
           rows={4}
           className="mt-1.5 w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink shadow-sm outline-none focus:border-ink/40"
         />

@@ -4,7 +4,7 @@ import { ApiError } from "../client";
 import { findMockUserByEmail, findMockUserById, listMockUsers } from "./auth-store";
 import { mockProducts } from "./products";
 import { getAllVendorProducts, updateVendorProduct } from "./vendor-inventory-store";
-import { getBuyerOrders, type BuyerOrder } from "./buyer-orders-store";
+import { getCustomerOrders, type CustomerOrder } from "./customer-orders-store";
 import type { DocumentType } from "../vendor-profile";
 import type { Product } from "../products";
 
@@ -466,7 +466,7 @@ export function getMockVendorDocumentUrl(vendorId: string, documentId: string): 
 
 // ---- Product Categories (Configuration module) — the taxonomy admin
 // assigns products/vendors into. Separate from lib/api/mocks/categories.ts's
-// static buyer-facing list (that one's a fixture with no read/write path of
+// static customer-facing list (that one's a fixture with no read/write path of
 // its own yet — see its comment on why no account type can read the real
 // category endpoint today); this is the admin CRUD side, matching the real
 // backend's admin/product-categories endpoints (Activate/Deactivate rather
@@ -570,7 +570,7 @@ export function setMockProductCategoryActive(id: string, isActive: boolean): Moc
   return category;
 }
 
-// ---- Products (Global Inventory) — derived from the same catalog buyers
+// ---- Products (Global Inventory) — derived from the same catalog customers
 // browse (lib/api/mocks/products.ts), reshaped for the admin moderation
 // table rather than a second, disconnected product list. ----
 
@@ -813,7 +813,7 @@ export function listMockAuditLog(params: { page?: number; pageSize?: number } = 
 // ---- Orders (platform-wide fulfillment queue) — dashboard's "Fulfill
 // Orders — Authorize N pending orders" quick action and the Orders nav
 // item, both currently backed by no real Order API (see app/admin/orders'
-// prior placeholder comment) — mocked the same way buyer/vendor data is. ----
+// prior placeholder comment) — mocked the same way customer/vendor data is. ----
 
 export interface MockOrderItem {
   productId: string;
@@ -1263,17 +1263,17 @@ export function deleteMockOnboardingField(key: string): void {
 }
 
 // ---------------------------------------------------------------------------
-// Buyers — admin's read-only view of Customer accounts. No backend endpoint
+// Customers — admin's read-only view of Customer accounts. No backend endpoint
 // exists for this at all (Administration/* has no Customers listing — the
-// real `users/customers/*` routes are the buyer's own self-service profile,
+// real `users/customers/*` routes are the customer's own self-service profile,
 // not an admin surface, per docs/BACKEND_INTEGRATION_GUIDE.md §3), so this is
 // mock-only for the foreseeable future, same category as admin/orders.ts.
-// Sourced by joining auth-store's account records with each buyer's own
-// order history (buyer-orders-store) rather than keeping a separate buyer
-// record — a buyer *is* just a Customer-type user with orders.
+// Sourced by joining auth-store's account records with each customer's own
+// order history (customer-orders-store) rather than keeping a separate customer
+// record — a customer *is* just a Customer-type user with orders.
 // ---------------------------------------------------------------------------
 
-export interface MockAdminBuyer {
+export interface MockAdminCustomer {
   id: string;
   name: string;
   email: string;
@@ -1283,15 +1283,15 @@ export interface MockAdminBuyer {
   lastOrderAt: string | null;
 }
 
-function buyerOrdersFor(userId: string): BuyerOrder[] {
-  return getBuyerOrders(userId, mockProducts);
+function customerOrdersFor(userId: string): CustomerOrder[] {
+  return getCustomerOrders(userId, mockProducts);
 }
 
-export function listMockAdminBuyers(): MockAdminBuyer[] {
+export function listMockAdminCustomers(): MockAdminCustomer[] {
   return listMockUsers()
     .filter((user) => user.accountType === "Customer")
     .map((user) => {
-      const orders = buyerOrdersFor(user.userId);
+      const orders = customerOrdersFor(user.userId);
       return {
         id: user.userId,
         name: user.displayName,
@@ -1304,14 +1304,14 @@ export function listMockAdminBuyers(): MockAdminBuyer[] {
     });
 }
 
-export function getMockAdminBuyerDetails(buyerId: string): { buyer: MockAdminBuyer; orders: BuyerOrder[] } | null {
-  const user = findMockUserById(buyerId);
+export function getMockAdminCustomerDetails(customerId: string): { customer: MockAdminCustomer; orders: CustomerOrder[] } | null {
+  const user = findMockUserById(customerId);
   if (!user || user.accountType !== "Customer") {
     return null;
   }
-  const orders = buyerOrdersFor(user.userId);
+  const orders = customerOrdersFor(user.userId);
   return {
-    buyer: {
+    customer: {
       id: user.userId,
       name: user.displayName,
       email: user.email,

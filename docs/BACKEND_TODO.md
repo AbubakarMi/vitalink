@@ -85,4 +85,4 @@ one is the bug above) all confirmed working now.
   we confirmed this specific gap now: the product list response really has
   no price field, so we can't show one. Needs a real conversation about how
   Product/Offer should map to what admins see, not a quick fix.
-- No endpoint to list all buyers/customers for admin.
+- No endpoint to list all customers for admin.

@@ -23,7 +23,7 @@ export default async function VendorArchivedProductsPage() {
         <div>
           <h1 className="text-2xl font-semibold text-ink">Archived Products</h1>
           <p className="mt-1 text-sm text-text-muted">
-            Off the marketplace and hidden from buyers. Un-archive to bring a listing back.
+            Off the marketplace and hidden from customers. Un-archive to bring a listing back.
           </p>
         </div>
         <Link href="/vendor/products" className="text-sm font-medium text-verified hover:underline">

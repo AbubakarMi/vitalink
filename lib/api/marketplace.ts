@@ -4,9 +4,9 @@ import { apiClient, ApiError } from "./client";
 import { pagedResult } from "./schemas/pagination";
 
 /**
- * The REAL buyer-facing catalog — Product + Offer, not this app's older
+ * The REAL customer-facing catalog — Product + Offer, not this app's older
  * flat `Product` type (lib/api/products.ts, which stays mock-only and is
- * what every other buyer/vendor/admin mock surface still reads). Gated by
+ * what every other customer/vendor/admin mock surface still reads). Gated by
  * the same `PRODUCTS_DATA_SOURCE` flag; when it's "live", the marketplace
  * listing/detail pages call this module and render the Buy Box UI instead
  * of the mock catalog's components — see app/(marketplace)/products/page.tsx
@@ -150,7 +150,7 @@ const MarketplaceCertificationSchema = z.object({
 /** No vendor name/identity on an offer — the real response genuinely
  * doesn't expose one (confirmed against MarketplaceOfferDetails), not an
  * omission on this schema's part. See the "Buy Box" design decision this
- * shape drove: offers are picked by price/condition/stock, not by seller. */
+ * shape drove: offers are picked by price/condition/stock, not by vendor. */
 const MarketplaceOfferDetailsSchema = z.object({
   offerId: z.string(),
   sku: z.string(),

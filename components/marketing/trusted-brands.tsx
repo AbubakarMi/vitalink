@@ -15,7 +15,7 @@ const LEDGER = [
  * empty placeholder or invent logo marks, this renders the real brand names
  * carried in the catalog (lib/api/brands.ts) as a minimal grayscale logo
  * strip — no cards, no color, one slow-drifting row — every name shown is
- * one a buyer can actually filter/search for on /products, plus the
+ * one a customer can actually filter/search for on /products, plus the
  * concrete verification ledger this section already had.
  */
 export async function TrustedBrands() {

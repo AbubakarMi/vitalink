@@ -20,8 +20,8 @@ const fieldClass =
  *
  * MFA method choice used to live here, but enrolling in MFA isn't part of
  * creating an account — it now lives with the rest of a signed-in account's
- * security preferences at /buyer/settings and /vendor/settings (see
- * components/buyer/mfa-settings.tsx and components/vendor/mfa-settings.tsx).
+ * security preferences at /customer/settings and /vendor/settings (see
+ * components/customer/mfa-settings.tsx and components/vendor/mfa-settings.tsx).
  */
 export function VendorIdentityForm({ onSuccess }: { onSuccess: () => void }) {
   const [state, formAction, pending] = useActionState(identityAction, initialState);

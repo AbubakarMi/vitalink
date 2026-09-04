@@ -53,10 +53,10 @@ function seedDemoUsersOnce(): void {
     return;
   }
   seedUser({
-    email: "buyer@vitalink.dev",
+    email: "customer@vitalink.dev",
     password: "Password1!",
     firstName: "Ada",
-    lastName: "Buyer",
+    lastName: "Customer",
     phone: "+2348000000001",
     accountType: "Customer",
     roles: ["Customer"],
@@ -85,7 +85,7 @@ export function findMockUserByEmail(email: string): MockUserRecord | undefined {
   return usersByEmail.get(email.toLowerCase());
 }
 
-/** Every mock account, regardless of type — admin's Buyers list
+/** Every mock account, regardless of type — admin's Customers list
  * (lib/api/mocks/admin-store.ts) filters this down to accountType
  * "Customer" itself, same as it already does for vendors/staff elsewhere. */
 export function listMockUsers(): MockUserRecord[] {

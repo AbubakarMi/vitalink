@@ -22,13 +22,13 @@ type SearchMode = "catalog" | "ai";
  * bar as the input (not a separate row above it): "catalog" is a literal
  * keyword search against /products (with live name-match suggestions from
  * the mock catalog, debounced 200ms); "ai" hands the query to Vitalink
- * Intelligence (components/buyer/intent-search-chat.tsx) via
- * /buyer/dashboard?q=, which requires a buyer session — an anonymous
+ * Intelligence (components/customer/intent-search-chat.tsx) via
+ * /customer/dashboard?q=, which requires a customer session — an anonymous
  * visitor gets bounced through /login and back (lib/auth/dal.ts's
  * requireAccountType).
  *
  * One component backs both the compact nav pill (site-header.tsx,
- * marketplace-header.tsx, buyer/dashboard-shell.tsx) and the full-width
+ * marketplace-header.tsx, customer/dashboard-shell.tsx) and the full-width
  * hero bar (hero-search.tsx) rather than duplicating the toggle/suggestions
  * logic four times — `variant` only changes sizing/color, not behavior.
  */
@@ -99,7 +99,7 @@ export function SearchBar({ variant = "nav", className }: { variant?: "nav" | "h
     if (!trimmed) return;
     setOpen(false);
     if (mode === "ai") {
-      router.push(`/buyer/dashboard?q=${encodeURIComponent(trimmed)}`);
+      router.push(`/customer/dashboard?q=${encodeURIComponent(trimmed)}`);
     } else {
       addRecentSearch(trimmed);
       setRecentSearches(getRecentSearches());

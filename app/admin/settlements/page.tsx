@@ -8,7 +8,7 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  * Bulk vendor payout — the backend has GetVendorSettlementAccounts/
  * GetVendorDefaultSettlementAccount but no bulk-transfer command yet, so
  * this whole page is mock-only (lib/api/admin/settlements.ts), matching
- * buyer/vendor's mock-data approach.
+ * customer/vendor's mock-data approach.
  */
 export default async function AdminSettlementsPage() {
   await requireAccountType("admin", "/admin/settlements");

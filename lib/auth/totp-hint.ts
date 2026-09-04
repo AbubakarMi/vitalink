@@ -12,7 +12,7 @@ const COOKIE_NAME = "vt_totp_hint";
  * component shows on load, because neither /auth/me nor any other endpoint
  * currently reports TOTP enrollment status — there's nowhere authoritative
  * to read it back from otherwise. Set whenever confirm/remove succeeds
- * (app/buyer/settings/actions.ts, app/vendor/settings/actions.ts); worst
+ * (app/customer/settings/actions.ts, app/vendor/settings/actions.ts); worst
  * case on a fresh browser/session it's wrong for one page load until the
  * user acts once, not a security exposure.
  */

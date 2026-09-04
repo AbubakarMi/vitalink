@@ -10,7 +10,7 @@ export function CartIcon() {
   const { itemCount } = useCart();
 
   return (
-    <Link href="/buyer/cart" aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`} className="relative flex size-10 items-center justify-center">
+    <Link href="/customer/cart" aria-label={`Cart, ${itemCount} item${itemCount === 1 ? "" : "s"}`} className="relative flex size-10 items-center justify-center">
       <ShoppingCart className="size-6 text-ink" aria-hidden />
       {itemCount > 0 && (
         <span className="absolute top-0.5 right-0.5 flex size-4 items-center justify-center rounded-full bg-verified text-[9px] font-bold text-white">

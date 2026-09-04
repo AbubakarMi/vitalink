@@ -5,7 +5,7 @@ Status: Approved by user, pending implementation plan
 
 ## 1. Purpose and scope
 
-Vitalink is a healthcare marketplace (buyer / vendor / admin roles) built on Next.js 16
+Vitalink is a healthcare marketplace (customer / vendor / admin roles) built on Next.js 16
 against a .NET 10 backend (`vitalink-backend`, Zitadel-backed auth). This document
 specifies the frontend architecture: role separation, the auth/network boundary, the
 data layer, design tokens, and one end-to-end vertical slice used to validate the
@@ -43,17 +43,17 @@ one-file change with zero UI-layer impact.
 ### 2.1 Route groups — and one structural fix
 
 **Correction (caught during implementation, before any route files were written):**
-Parenthesized route groups (`(buyer)`, `(vendor)`, `(admin)`) do **not** add a URL
+Parenthesized route groups (`(customer)`, `(vendor)`, `(admin)`) do **not** add a URL
 segment — that's their whole purpose for `(marketing)`/`(auth)`, which both want their
 children at the bare root with no shared prefix. But applied literally to
-buyer/vendor/admin as originally sketched, `(buyer)/dashboard/page.tsx`,
+customer/vendor/admin as originally sketched, `(customer)/dashboard/page.tsx`,
 `(vendor)/dashboard/page.tsx`, and `(admin)/dashboard/page.tsx` would all resolve to
 the identical URL `/dashboard` — Next.js fails the build on that collision, and the
-same collision hits `/orders`. The fix: buyer/vendor/admin get **real path segments**
-(`buyer/`, `vendor/`, `admin/`), not route groups — the plain folder already does
+same collision hits `/orders`. The fix: customer/vendor/admin get **real path segments**
+(`customer/`, `vendor/`, `admin/`), not route groups — the plain folder already does
 everything a parenthesized group would (a `layout.tsx` scoped to everything under it)
 plus it gives each role a distinct URL prefix, which is exactly what's needed here. It
-also simplifies `proxy.ts` (§3): matching becomes a plain `/buyer`, `/vendor`, `/admin`
+also simplifies `proxy.ts` (§3): matching becomes a plain `/customer`, `/vendor`, `/admin`
 path-prefix check instead of trying to reverse-engineer which invisible route group a
 URL belongs to.
 
@@ -69,13 +69,13 @@ app/
     register/page.tsx        # REAL
     vendor-apply/page.tsx    # REAL — maps to actual VendorProfile/Document/SettlementAccount flow
     layout.tsx
-  buyer/                     # real segment — requires AccountType === "Customer"
-    dashboard/page.tsx       # /buyer/dashboard — REAL identity (GetCurrentUser), MOCKED order-history widget
-    catalog/page.tsx         # /buyer/catalog — MOCKED categories, MOCKED products (Customer accounts have no grant on ProductCategories.List/Brands.List either — admin-only, see §1 correction)
-    cart/page.tsx            # /buyer/cart — MOCKED, no Cart API
-    checkout/page.tsx        # /buyer/checkout — MOCKED, no Order/Payment API
-    orders/page.tsx          # /buyer/orders — MOCKED
-    orders/[id]/page.tsx     # /buyer/orders/[id] — MOCKED
+  customer/                     # real segment — requires AccountType === "Customer"
+    dashboard/page.tsx       # /customer/dashboard — REAL identity (GetCurrentUser), MOCKED order-history widget
+    catalog/page.tsx         # /customer/catalog — MOCKED categories, MOCKED products (Customer accounts have no grant on ProductCategories.List/Brands.List either — admin-only, see §1 correction)
+    cart/page.tsx            # /customer/cart — MOCKED, no Cart API
+    checkout/page.tsx        # /customer/checkout — MOCKED, no Order/Payment API
+    orders/page.tsx          # /customer/orders — MOCKED
+    orders/[id]/page.tsx     # /customer/orders/[id] — MOCKED
     layout.tsx
   vendor/                    # real segment — requires AccountType === "Vendor" AND VendorVerificationStatus === "Verified"
     dashboard/page.tsx       # /vendor/dashboard — REAL vendor profile/status, MOCKED sales/payout figures
@@ -98,11 +98,11 @@ app/
     auth/session/route.ts    # thin route for client-triggered session refresh, if needed
 ```
 
-`components/ui/` holds shared primitives (shadcn-based, customized). `components/{marketing,buyer,vendor,admin}/`
+`components/ui/` holds shared primitives (shadcn-based, customized). `components/{marketing,customer,vendor,admin}/`
 hold role-scoped composed components. **A component in one role's folder is never
 imported by another role's route** — even when it looks reusable — because that's
 exactly how healthcare marketplaces leak data across roles (e.g. a vendor payout
-component quietly rendering in a buyer context because someone reused it).
+component quietly rendering in a customer context because someone reused it).
 
 ### 2.2 Defense in depth
 
@@ -131,13 +131,13 @@ not two:
 ### 2.3 `AccountType` ↔ path-prefix naming
 
 The backend's `AccountType` enum is `Customer | Vendor | Staff`; the real path
-prefixes from §2.1 are named `/buyer`, `/vendor`, `/admin` for UX/product language.
+prefixes from §2.1 are named `/customer`, `/vendor`, `/admin` for UX/product language.
 These do **not** name-match. The mapping lives in exactly one place,
 `lib/auth/route-groups.ts`:
 
 ```ts
 export const PATH_PREFIX_ACCOUNT_TYPE = {
-  buyer: "Customer",
+  customer: "Customer",
   vendor: "Vendor",
   admin: "Staff",
 } as const;
@@ -150,7 +150,7 @@ never re-derived or string-compared ad hoc.
 
 Runs on the Node.js runtime (Next 16 `proxy.ts` is not edge-locked like the old
 `middleware.ts`, and defaults to Node.js — confirmed in the bundled docs), matcher
-scoped to the real `/buyer`, `/vendor`, `/admin` path prefixes from §2.1 —
+scoped to the real `/customer`, `/vendor`, `/admin` path prefixes from §2.1 —
 `(marketing)`/`(auth)` routes always pass through unauthenticated. Matching on real
 path prefixes rather than (invisible-in-the-URL) route groups is what makes this
 mapping unambiguous at request time.
@@ -231,7 +231,7 @@ type using them (auth; vendor profile/documents/settlement; admin vendor approva
 skip the conditional. Brand/category endpoints are real but `isAdmin`-only (§1
 correction) — `lib/api/admin/categories.ts` and `lib/api/admin/brands.ts` call them
 directly (no mock) for future admin catalog-management pages, while the
-public/buyer-facing `lib/api/categories.ts` used by marketing and `(buyer)/catalog`
+public/customer-facing `lib/api/categories.ts` used by marketing and `(customer)/catalog`
 stays on the mock seam like `products.ts`, since no account type has read access yet.
 
 Error handling: in dev, a Zod parse failure throws and is visible immediately. In
@@ -341,10 +341,10 @@ count is omitted entirely for now — see §8, no fabricated placeholder.)
 
 Resolves one ordering tension: the requested slice order (landing → catalog → login →
 dashboard) implies a public catalog, but the folder structure places `catalog` under
-`(buyer)` (auth-required). Resolved as most marketplaces do: a **public** browse
-experience lives at `(marketing)/products/`, and `(buyer)/catalog/page.tsx` is the
+`(customer)` (auth-required). Resolved as most marketplaces do: a **public** browse
+experience lives at `(marketing)/products/`, and `(customer)/catalog/page.tsx` is the
 *authenticated*, personalized view reusing the same components/adapters. Flagged
-explicitly in case the intent was actually buyer-only catalog with no public browse.
+explicitly in case the intent was actually customer-only catalog with no public browse.
 
 1. `(marketing)/page.tsx` — cache-components static shell, mocked featured categories
    and trending products streamed in, dual hero CTA ("Shop health products" /
@@ -353,7 +353,7 @@ explicitly in case the intent was actually buyer-only catalog with no public bro
    categories/products, JSON-LD structured data.
 3. `(auth)/login/page.tsx` — real, full MFA branching (`LoginResponse.MfaRequired` →
    TOTP or OTP-email).
-4. `(buyer)/dashboard/page.tsx` — real identity via `GetCurrentUser`, mocked
+4. `(customer)/dashboard/page.tsx` — real identity via `GetCurrentUser`, mocked
    order-history widget.
 
 ## 10. Required backend additions (tracked, not blocking this build)
@@ -374,7 +374,7 @@ explicitly in case the intent was actually buyer-only catalog with no public bro
 
 Covers, for future engineers who might be tempted to "simplify" this back into a
 shared structure: why the three role route groups never cross-import components (with
-the vendor-payout-in-buyer-context leak scenario as the concrete example), the
+the vendor-payout-in-customer-context leak scenario as the concrete example), the
 `proxy.ts` + DAL defense-in-depth rationale (§2.2) and why layouts alone are not a
 security boundary, the `AccountType`↔route-group naming map and where it lives, the
 mock/real adapter seam convention and how to flip a resource, the permission-stub

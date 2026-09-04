@@ -10,7 +10,7 @@ import { addToLiveCartAction } from "@/lib/cart/live-actions";
  * to Cart, with a collapsible list of every other vendor's offer to switch
  * to. No vendor name/identity is shown because the real backend response
  * (MarketplaceOfferDetails) doesn't carry one at all — offers are picked by
- * price/condition/stock, not by seller. Adds to the real backend cart
+ * price/condition/stock, not by vendor. Adds to the real backend cart
  * (lib/api/cart.ts), not the mock catalog's localStorage store.
  */
 export function BuyBox({ offers, currency }: { offers: MarketplaceOfferDetails[]; currency: string }) {
