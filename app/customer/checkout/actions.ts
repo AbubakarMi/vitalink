@@ -23,6 +23,6 @@ export async function completeCheckoutAction(
     const order = await createOrderFromCheckout({ items, deliveryAddress: address });
     return { data: { orderId: order.id } };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't complete checkout." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't complete checkout." };
   }
 }

@@ -45,7 +45,7 @@ export default async function VerifyEmailPage({ searchParams }: PageProps) {
   try {
     await verifyEmail(userId, code);
   } catch (err) {
-    error = err instanceof ApiError ? err.message : "Something went wrong verifying your email.";
+    error = err instanceof ApiError ? err.detail : "Something went wrong verifying your email.";
   }
 
   if (error) {

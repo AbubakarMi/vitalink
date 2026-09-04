@@ -21,7 +21,7 @@ export async function createDraftAction(input: CreateVendorProductDraftInput): P
     const product = await createVendorProductDraft(input);
     return { data: { productId: product.id } };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save product details." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't save product details." };
   }
 }
 
@@ -46,7 +46,7 @@ export async function saveDraftAction(
     revalidatePath("/vendor/products");
     return { data: { productId } };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save draft." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't save draft." };
   }
 }
 
@@ -61,6 +61,6 @@ export async function publishAction(
     revalidatePath("/vendor/dashboard");
     return { data: { productId } };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't publish product." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't publish product." };
   }
 }

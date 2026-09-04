@@ -14,7 +14,6 @@ import {
 import { ADDRESS_LABELS, type AddressLabel } from "@/lib/api/address-labels";
 import { startTotpEnrollment, confirmTotpEnrollment, removeTotp, logoutAllDevices } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
-import { setTotpHint } from "@/lib/auth/totp-hint";
 
 export interface ActionResult {
   error?: string;
@@ -33,29 +32,27 @@ export async function startTotpEnrollmentAction(): Promise<ActionResult & { data
     const qrCodeDataUrl = await QRCode.toDataURL(enrollment.uri, { width: 220, margin: 1 });
     return { data: { qrCodeDataUrl, secret: enrollment.secret } };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't start authenticator setup." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't start authenticator setup." };
   }
 }
 
 export async function confirmTotpEnrollmentAction(code: string): Promise<ActionResult> {
   try {
     await confirmTotpEnrollment(code);
-    await setTotpHint(true);
     revalidatePath("/customer/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't confirm that code." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't confirm that code." };
   }
 }
 
 export async function removeTotpAction(): Promise<ActionResult> {
   try {
     await removeTotp();
-    await setTotpHint(false);
     revalidatePath("/customer/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't remove the authenticator app." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't remove the authenticator app." };
   }
 }
 
@@ -63,7 +60,7 @@ export async function logoutAllDevicesAction(): Promise<ActionResult> {
   try {
     await logoutAllDevices();
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't sign out of other devices." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't sign out of other devices." };
   }
   // Outside the try/catch — redirect() throws internally and must not be
   // caught by the block above (same gotcha as every other Server Action
@@ -100,7 +97,7 @@ export async function addAddressAction(_prev: AddressActionResult, formData: For
     revalidatePath("/customer/settings");
     return { data: address };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save that address." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't save that address." };
   }
 }
 
@@ -111,7 +108,7 @@ export async function updateAddressAction(_prev: AddressActionResult, formData: 
     revalidatePath("/customer/settings");
     return { data: address };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save that address." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't save that address." };
   }
 }
 

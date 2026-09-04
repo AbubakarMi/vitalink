@@ -15,6 +15,6 @@ export async function updateProductAction(productId: string, input: UpdateVendor
     revalidatePath("/vendor/products");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't save changes." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't save changes." };
   }
 }

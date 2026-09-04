@@ -63,6 +63,25 @@ export class ApiError extends Error {
     super(message);
     this.name = "ApiError";
   }
+
+  /**
+   * The backend's own human-readable error text, when it sent one — every
+   * real error response is RFC 9110 ProblemDetails
+   * (`{type, title, status, detail, instance, traceId, requestId}`, see
+   * ZitadelAuthErrors.cs et al.), and `detail` is the one field actually
+   * meant to be shown to a person ("The provided authenticator code is
+   * invalid.", not the generic `.message` every ApiError gets constructed
+   * with — "Backend request failed: POST auth/mfa/totp/confirm (400)" —
+   * which every `catch (err) { error: err instanceof ApiError ? err.message
+   * : ... }` site was showing users verbatim until this existed. Falls back
+   * to `.message` for the rare error that isn't ProblemDetails-shaped
+   * (network failure, a non-JSON body, an endpoint that doesn't follow the
+   * convention) rather than showing nothing.
+   */
+  get detail(): string {
+    const body = this.body as { detail?: unknown } | undefined;
+    return typeof body?.detail === "string" && body.detail.trim() ? body.detail : this.message;
+  }
 }
 
 interface RequestOptions {

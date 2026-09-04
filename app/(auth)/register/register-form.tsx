@@ -1,28 +1,33 @@
 "use client";
 
-import { useActionState, useEffect, useRef, useState } from "react";
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { User, Mail, Lock, Eye, EyeOff, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { AccountType } from "@/lib/api/auth";
 import { PhoneNumberField } from "@/components/ui/phone-input-field";
 import { ResendVerificationButton } from "@/components/auth/resend-verification-button";
+import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { registerAction, checkEmailAvailabilityAction, type RegisterState } from "./actions";
 
 const initialState: RegisterState = {};
 
-type EmailCheckStatus = "idle" | "checking" | "available" | "taken";
-
 const fieldClass =
   "w-full rounded-xl border border-line bg-white py-3 pr-11 pl-11 text-sm text-ink shadow-sm outline-none transition-shadow focus:border-ink/40 focus:shadow-[0_0_0_4px_rgba(0,39,8,0.07)]";
+
+/** Looks-like-an-email check gating the query below — same bar the input's
+ * own onChange used before, just centralized so the debounced value and the
+ * `enabled` check agree on what counts as "worth asking about." */
+function looksLikeEmail(value: string): boolean {
+  return value.trim().includes("@");
+}
 
 export function RegisterForm({ accountType, roleLabel }: { accountType: AccountType; roleLabel: string }) {
   const [state, formAction, pending] = useActionState(registerAction, initialState);
   const [showPassword, setShowPassword] = useState(false);
-  const [emailStatus, setEmailStatus] = useState<EmailCheckStatus>("idle");
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const requestIdRef = useRef(0);
+  const [email, setEmail] = useState("");
   // ?redirect= (most commonly /customer/checkout, via the cart page's guest
   // prompt — components/customer/checkout-cta.tsx) — registering never logs
   // you in outright (mock: still a separate login step; live: also needs
@@ -31,37 +36,31 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
   const redirectTo = useSearchParams().get("redirect");
   const loginHref = redirectTo ? `/login?redirect=${encodeURIComponent(redirectTo)}` : "/login";
 
-  // Live-as-you-type check (debounced 500ms) — see lib/api/auth.ts's
-  // checkEmailAvailability comment for why live mode can't answer this yet;
-  // "idle" there just means the input stays quiet, not wrong.
-  function handleEmailChange(value: string) {
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    const trimmed = value.trim();
-    if (!trimmed.includes("@")) {
-      requestIdRef.current += 1;
-      setEmailStatus("idle");
-      return;
-    }
-    setEmailStatus("checking");
-    const requestId = ++requestIdRef.current;
-    debounceRef.current = setTimeout(() => {
-      checkEmailAvailabilityAction(trimmed)
-        .then((result) => {
-          if (requestIdRef.current !== requestId) return; // a newer keystroke superseded this one
-          setEmailStatus(result.available === null ? "idle" : result.available ? "available" : "taken");
-        })
-        .catch(() => {
-          if (requestIdRef.current !== requestId) return;
-          setEmailStatus("idle");
-        });
-    }, 500);
-  }
+  // Live-as-you-type availability check — debounced 500ms so a fast typist
+  // doesn't fire a request per keystroke, then handed to useQuery keyed on
+  // the debounced value: React Query itself de-dupes/cancels stale in-flight
+  // requests when the key changes, no manual requestId/staleness guard
+  // needed (queryFn calls the existing Server Action directly — it's just
+  // an async function from the client's point of view).
+  const debouncedEmail = useDebouncedValue(email, 500);
+  const emailQuery = useQuery({
+    queryKey: ["email-availability", debouncedEmail],
+    queryFn: () => checkEmailAvailabilityAction(debouncedEmail),
+    enabled: looksLikeEmail(debouncedEmail),
+    staleTime: 30_000,
+    retry: false,
+  });
 
-  useEffect(() => {
-    return () => {
-      if (debounceRef.current) clearTimeout(debounceRef.current);
-    };
-  }, []);
+  const isTyping = looksLikeEmail(email) && email !== debouncedEmail;
+  const emailStatus: "idle" | "checking" | "available" | "taken" = !looksLikeEmail(email)
+    ? "idle"
+    : isTyping || emailQuery.isFetching
+      ? "checking"
+      : emailQuery.data?.available === true
+        ? "available"
+        : emailQuery.data?.available === false
+          ? "taken"
+          : "idle";
 
   if (state.success) {
     return (
@@ -138,7 +137,7 @@ export function RegisterForm({ accountType, roleLabel }: { accountType: AccountT
             type="email"
             autoComplete="email"
             required
-            onChange={(e) => handleEmailChange(e.target.value)}
+            onChange={(e) => setEmail(e.target.value)}
             className={cn(fieldClass, "pr-11", emailStatus === "taken" && "border-[#c0392b]/40")}
             placeholder="you@clinic.com"
           />

@@ -324,6 +324,72 @@ the bug above for any new customer's first address, so `CUSTOMER_ADDRESS_DATA_SO
 should stay off in any real deploy until that's fixed backend-side —
 left as `mock` in `.env.local`, matching every other flag's default.
 
+### 0e. Status (2026-09-04) — backend team update: email check, totpEnabled, MFA errors, merge-products
+
+The backend team pulled three things that directly unblock frontend TODOs,
+plus flagged a fourth (bigger) feature that's understood but not yet wired
+up:
+
+1. **`GET auth/email-availability?Email=`** now exists
+   (`AllowAnonymous`, confirmed: existing email → 200
+   `{isAvailable:false}`, new email → 200 `{isAvailable:true}`, malformed
+   email → 400). Wired up in `lib/api/auth.ts`'s `checkEmailAvailability()`
+   — no more permanent `null` in live mode. Also rebuilt the register
+   form's live-as-you-type check
+   (`app/(auth)/register/register-form.tsx`) on React Query instead of a
+   hand-rolled `setTimeout`/`requestIdRef` debounce+staleness-guard: a new
+   `lib/hooks/use-debounced-value.ts` debounces the raw input (500ms),
+   `useQuery` keyed on the debounced value does its own request
+   de-duplication/cancellation, and the existing Server Action
+   (`checkEmailAvailabilityAction`) is used directly as the query
+   function — Server Actions are just async functions from the client's
+   point of view, nothing special needed to use one as a `queryFn`. New
+   `lib/query/provider.tsx` wraps the app in a `QueryClientProvider`
+   (first real use of the already-installed `@tanstack/react-query`
+   dependency — nothing used it before this).
+2. **`GET auth/me` now includes a real `totpEnabled` field.** Retired
+   `lib/auth/totp-hint.ts` (a cookie-based guess, since there was
+   previously nowhere authoritative to read this back from) entirely —
+   deleted the file, `CurrentUserResponseSchema` now has `totpEnabled:
+   z.boolean()`, and both settings pages
+   (`app/customer/settings/page.tsx`, `app/vendor/settings/page.tsx`) read
+   it straight off `getCurrentUser()` instead of a separate
+   `getTotpEnabled()` call (also deleted — fully redundant now).
+3. **MFA/verification errors now return real 400/401 ProblemDetails
+   instead of crashing with 500** (the `ZitadelMfaService`/session-service
+   changes mentioned in the pull). This surfaced a **separate, real
+   frontend bug while checking it**, not a backend issue: `ApiError`'s
+   `.message` was never the backend's actual error text — `client.ts`
+   always constructed it as a generic `Backend request failed: POST
+   auth/mfa/totp/confirm (400)`, while the real, human-readable detail
+   (`"The provided authenticator code is invalid."`) was sitting unused in
+   `.body.detail` (every response is RFC 9110 ProblemDetails). Every
+   `catch (err) { error: err instanceof ApiError ? err.message : ... }`
+   site (10 files) was showing users that generic string verbatim instead
+   of the real one. This was low-stakes before — everything 500'd anyway,
+   so there was no useful detail to lose — but now that real per-field
+   errors come back, it's worth fixing: added `ApiError.detail` (a getter
+   that reads `.body.detail`, falling back to `.message` for the rare
+   non-ProblemDetails error) and switched every one of those 10 sites from
+   `.message` to `.detail`.
+4. **Not wired up yet, flagged as its own future pass**: the backend has
+   built out a much richer vendor product-submission flow than what
+   `app/vendor/products/new/new-product-wizard.tsx` currently drives —
+   staged draft creation, then `GetProductDuplicates` (trigram-similarity
+   fuzzy matching against existing products, threshold 0.4, up to 20
+   suggestions) and `GetProductMergePreview`, then a final
+   `SubmitProductForReview` that either creates a new product or (via
+   `MatchExistingProductId`, selected from the duplicate suggestions)
+   merges the draft into an existing product and creates the vendor's
+   offer against it instead — plus volume-pricing tiers and offer-level
+   certification documents as part of that same final submit, none of
+   which the current wizard collects. This is genuinely its own
+   integration pass (comparable in size to the marketplace+cart or
+   address-book work), not a quick addition — read directly from
+   `Web.Api/Endpoints/Catalog/Vendor/SubmitProductForReview.cs` and the
+   neighboring `Administration/Products/{GetProductMergePreview,
+   MergeProducts}.cs`, not yet click-tested.
+
 ---
 
 ## 1. Running the backend locally

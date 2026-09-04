@@ -17,6 +17,6 @@ export async function askIntentSearchAction(
     const result = await askIntentSearch(query, chatId);
     return { data: result };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't process that search." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't process that search." };
   }
 }

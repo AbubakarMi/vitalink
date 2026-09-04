@@ -1,5 +1,5 @@
 import { requireAccountType } from "@/lib/auth/dal";
-import { getCurrentUser, getTotpEnabled } from "@/lib/api/auth";
+import { getCurrentUser } from "@/lib/api/auth";
 import { listAddresses } from "@/lib/api/addresses";
 import { AddressBook } from "@/components/customer/address-book";
 import { MfaSettings } from "@/components/customer/mfa-settings";
@@ -20,7 +20,7 @@ function splitName(displayName: string): { first: string; last: string } {
  * defaults for shipping/billing, matching the real backend's model. */
 export default async function CustomerSettingsPage() {
   await requireAccountType("customer", "/customer/settings");
-  const [user, addresses, totpEnabled] = await Promise.all([getCurrentUser(), listAddresses(), getTotpEnabled()]);
+  const [user, addresses] = await Promise.all([getCurrentUser(), listAddresses()]);
   const { first, last } = splitName(user?.displayName ?? "");
 
   return (
@@ -55,7 +55,7 @@ export default async function CustomerSettingsPage() {
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
-        <MfaSettings initialEnabled={totpEnabled} />
+        <MfaSettings initialEnabled={user?.totpEnabled ?? false} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">

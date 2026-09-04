@@ -3,6 +3,7 @@ import "./globals.css";
 import { Manrope, Alata, Newsreader, IBM_Plex_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 import { CartProvider } from "@/lib/cart/store";
+import { ReactQueryProvider } from "@/lib/query/provider";
 
 // Manrope/Alata/Newsreader match the landing page design (Figma EZER-KEY, node
 // 1707:7213) — replaces the create-next-app default (Geist). IBM Plex Mono is
@@ -25,7 +26,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={cn("font-sans", manrope.variable, alata.variable, newsreader.variable, plexMono.variable)}
     >
       <body>
-        <CartProvider>{children}</CartProvider>
+        <ReactQueryProvider>
+          <CartProvider>{children}</CartProvider>
+        </ReactQueryProvider>
       </body>
     </html>
   );

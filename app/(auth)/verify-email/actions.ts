@@ -13,6 +13,6 @@ export async function resendVerificationEmailAction(userId: string): Promise<Res
     await resendVerificationEmail(userId);
     return { sent: true };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't resend the verification email." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't resend the verification email." };
   }
 }

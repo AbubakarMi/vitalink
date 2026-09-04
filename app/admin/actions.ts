@@ -49,7 +49,7 @@ export async function approveVendorAction(vendorId: string): Promise<ActionResul
     revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't approve this vendor." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't approve this vendor." };
   }
 }
 
@@ -63,7 +63,7 @@ export async function rejectVendorAction(vendorId: string, reason: string): Prom
     revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't decline this vendor." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't decline this vendor." };
   }
 }
 
@@ -76,7 +76,7 @@ export async function markVendorUnderReviewAction(vendorId: string): Promise<Act
     revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't update this vendor." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't update this vendor." };
   }
 }
 
@@ -89,7 +89,7 @@ export async function getVendorDocumentUrlAction(vendorId: string, documentId: s
     const url = await getVendorDocumentUrl(vendorId, documentId);
     return { url };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't load this document." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't load this document." };
   }
 }
 
@@ -101,7 +101,7 @@ export async function approveProductAction(productId: string): Promise<ActionRes
     revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't approve this product." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't approve this product." };
   }
 }
 
@@ -113,7 +113,7 @@ export async function rejectProductAction(productId: string, reason: string): Pr
     revalidatePath("/admin", "layout");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't reject this product." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't reject this product." };
   }
 }
 
@@ -125,7 +125,7 @@ export async function createStaffAction(input: CreateStaffInput): Promise<Action
     revalidatePath("/admin/dashboard");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't send that invite." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't send that invite." };
   }
 }
 
@@ -136,7 +136,7 @@ export async function approveStaffAction(staffId: string): Promise<ActionResult>
     revalidatePath("/admin/users");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't approve this staff account." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't approve this staff account." };
   }
 }
 
@@ -147,7 +147,7 @@ export async function suspendStaffAction(staffId: string): Promise<ActionResult>
     revalidatePath("/admin/users");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't suspend this staff account." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't suspend this staff account." };
   }
 }
 
@@ -159,7 +159,7 @@ export async function processBulkTransferAction(vendorIds: string[]): Promise<Ac
     revalidatePath("/admin/transactions");
     return result;
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't process the bulk transfer." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't process the bulk transfer." };
   }
 }
 
@@ -180,7 +180,7 @@ export async function updateOnboardingFieldAction(
     revalidatePath("/admin/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't update that field." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't update that field." };
   }
 }
 
@@ -194,7 +194,7 @@ export async function createOnboardingFieldAction(input: CreateOnboardingFieldIn
     revalidatePath("/admin/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't add that field." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't add that field." };
   }
 }
 
@@ -205,7 +205,7 @@ export async function deleteOnboardingFieldAction(key: string): Promise<ActionRe
     revalidatePath("/admin/settings");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't remove that field." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't remove that field." };
   }
 }
 
@@ -219,7 +219,7 @@ export async function createCategoryAction(input: CreateAdminProductCategoryInpu
     revalidatePath("/admin/settings/categories");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't add that category." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't add that category." };
   }
 }
 
@@ -230,6 +230,6 @@ export async function setCategoryActiveAction(id: string, isActive: boolean): Pr
     revalidatePath("/admin/settings/categories");
     return {};
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't update that category." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't update that category." };
   }
 }

@@ -3,9 +3,10 @@
 import { register, checkEmailAvailability, AccountTypeSchema } from "@/lib/api/auth";
 import { ApiError } from "@/lib/api/client";
 
-/** `available: null` means the check couldn't be done (live mode — see
- * lib/api/auth.ts's checkEmailAvailability comment) — register-form.tsx
- * treats that as "say nothing" rather than a wrong tick either way. */
+/** `available: null` means the check couldn't be done at all (bad input, a
+ * network hiccup — see lib/api/auth.ts's checkEmailAvailability comment) —
+ * register-form.tsx treats that as "say nothing" rather than a wrong tick
+ * either way. */
 export async function checkEmailAvailabilityAction(email: string): Promise<{ available: boolean | null }> {
   const trimmed = email.trim();
   if (!trimmed || !trimmed.includes("@")) {

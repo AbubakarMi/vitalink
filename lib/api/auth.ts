@@ -20,7 +20,6 @@ import {
 } from "./mocks/security-store";
 import { verifySession } from "@/lib/auth/dal";
 import { normalizeAccountType } from "@/lib/auth/session";
-import { getTotpHint } from "@/lib/auth/totp-hint";
 
 /**
  * Adapter over the real, already-shipped Zitadel-backed auth endpoints (see
@@ -116,21 +115,42 @@ const CurrentUserResponseSchema = z.object({
   // (lowercase, "admin" fallback) or a real account fails this outright.
   // See lib/auth/session.ts's normalizeAccountType comment.
   accountType: z.preprocess((value) => normalizeAccountType(value) ?? value, AccountTypeSchema),
+  // Real, server-tracked truth as of 2026-09-04 — auth/me now reports this
+  // directly, so the old cookie-based hint (lib/auth/totp-hint.ts, deleted)
+  // is retired; callers just read this field off getCurrentUser() now.
+  // Defaults false for the mock branch's own hand-built object below, which
+  // sets the real value itself.
+  totpEnabled: z.boolean().default(false),
 });
 export type CurrentUser = z.infer<typeof CurrentUserResponseSchema>;
 
+const EmailAvailabilityResponseSchema = z.object({ isAvailable: z.boolean() });
+
 /**
  * Live-as-you-type email check on the register form (register-form.tsx) —
- * `null` means "can't tell" rather than a false green tick/red mark: no
- * backend endpoint exists to check this without actually registering (see
- * docs/BACKEND_TODO.md), so live mode always returns null. Mock mode is a
- * real check against the same store register() itself reads/writes.
+ * real endpoint now (`GET auth/email-availability`, `AllowAnonymous`,
+ * confirmed live: existing email -> 200 `{isAvailable:false}`, new email ->
+ * 200 `{isAvailable:true}`; a malformed email 400s, treated as "can't tell"
+ * below rather than a wrong tick either way since the caller already does
+ * its own client-side "looks like an email" check before calling this).
+ * `null` only means the call itself failed (network hiccup, malformed
+ * input) — genuinely nothing to report, not a stand-in for "unsupported"
+ * anymore. Mock mode stays a real check against the same store register()
+ * itself reads/writes.
  */
 export async function checkEmailAvailability(email: string): Promise<boolean | null> {
   if (SOURCE === "mock") {
     return !findMockUserByEmail(email);
   }
-  return null;
+  try {
+    const { data } = await apiClient.get<unknown>(`${BASE}/email-availability`, {
+      params: { Email: email },
+      withCredentials: false,
+    });
+    return EmailAvailabilityResponseSchema.parse(data).isAvailable;
+  } catch {
+    return null;
+  }
 }
 
 export interface RegisterInput {
@@ -295,6 +315,7 @@ export async function getCurrentUser(): Promise<CurrentUser | null> {
       phone: user.phone ?? null,
       displayName: user.displayName,
       accountType: user.accountType,
+      totpEnabled: isMockTotpEnabled(user.userId),
     });
   }
   try {
@@ -441,15 +462,3 @@ export async function removeTotp(): Promise<void> {
   await apiClient.delete(`${BASE}/mfa/totp`);
 }
 
-/**
- * Whether the current user has an authenticator app enrolled — real,
- * server-tracked truth in mock mode; a best-effort UI hint in live mode
- * since no backend endpoint reports this (see lib/auth/totp-hint.ts).
- */
-export async function getTotpEnabled(): Promise<boolean> {
-  if (SOURCE === "mock") {
-    const session = await verifySession();
-    return session ? isMockTotpEnabled(session.userId) : false;
-  }
-  return getTotpHint();
-}

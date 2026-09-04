@@ -11,7 +11,9 @@ import { startTotpEnrollmentAction, confirmTotpEnrollmentAction, removeTotpActio
  * Authenticator preference radio (a fabricated setting with no backing
  * capability) with the one thing the backend actually exposes: enroll, scan
  * a real QR code, confirm with a code, or remove. See lib/api/auth.ts's
- * startTotpEnrollment/confirmTotpEnrollment/removeTotp/getTotpEnabled.
+ * startTotpEnrollment/confirmTotpEnrollment/removeTotp — initialEnabled
+ * comes off getCurrentUser()'s totpEnabled field (a real auth/me response
+ * field now, not the old cookie-based hint).
  */
 export function MfaSettings({ initialEnabled }: { initialEnabled: boolean }) {
   const [enabled, setEnabled] = useState(initialEnabled);

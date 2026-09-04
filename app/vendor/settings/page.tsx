@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Landmark } from "lucide-react";
 import { requireAccountType } from "@/lib/auth/dal";
-import { getTotpEnabled } from "@/lib/api/auth";
+import { getCurrentUser } from "@/lib/api/auth";
 import { MfaSettings } from "@/components/vendor/mfa-settings";
 import { LogoutAllDevicesButton } from "@/components/vendor/logout-all-devices-button";
 
@@ -13,7 +13,7 @@ export const instant = false; // requireAccountType reads cookies — genuinely 
  * entry in favor of this page. */
 export default async function VendorSettingsPage() {
   await requireAccountType("vendor", "/vendor/settings");
-  const totpEnabled = await getTotpEnabled();
+  const user = await getCurrentUser();
   return (
     <div className="mx-auto max-w-2xl py-16">
       <h1 className="text-2xl font-semibold text-ink">Settings</h1>
@@ -33,7 +33,7 @@ export default async function VendorSettingsPage() {
       </Link>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">
-        <MfaSettings initialEnabled={totpEnabled} />
+        <MfaSettings initialEnabled={user?.totpEnabled ?? false} />
       </div>
 
       <div className="mt-6 rounded-2xl border border-line bg-white p-5 sm:p-6">

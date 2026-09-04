@@ -17,7 +17,7 @@ export async function addToLiveCartAction(vendorOfferId: string, quantity: numbe
     const cart = await addCartItem(vendorOfferId, quantity);
     return { cart };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't add this to your cart." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't add this to your cart." };
   }
 }
 
@@ -26,7 +26,7 @@ export async function changeLiveCartQuantityAction(itemId: string, quantity: num
     const cart = await changeCartItemQuantity(itemId, quantity);
     return { cart };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't update that quantity." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't update that quantity." };
   }
 }
 
@@ -35,7 +35,7 @@ export async function removeLiveCartItemAction(itemId: string): Promise<CartActi
     const cart = await removeCartItem(itemId);
     return { cart };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't remove that item." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't remove that item." };
   }
 }
 
@@ -44,7 +44,7 @@ export async function clearLiveCartAction(): Promise<CartActionResult> {
     const cart = await clearCart();
     return { cart };
   } catch (err) {
-    return { error: err instanceof ApiError ? err.message : "Couldn't clear your cart." };
+    return { error: err instanceof ApiError ? err.detail : "Couldn't clear your cart." };
   }
 }
 
